@@ -29,6 +29,7 @@ Then install the latest version of Metashape python library from the [Agisoft we
 
 Config file: create a .rpj text file containing the following:
 
+```txt
 {
     'name': '',
     'project_directory': '',
@@ -39,5 +40,6 @@ Config file: create a .rpj text file containing the following:
     'annotation_report_path': '',
     'reprojection_image_directory': '',
 }
+```
 
 An example of a config file is provided in the example folder.
