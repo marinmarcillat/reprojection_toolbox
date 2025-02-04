@@ -1,7 +1,7 @@
 from treelib import Node, Tree
 from Biigle.biigle import Api
 
-api = Api("marin.marcillat@ifremer.fr", "eOpXJK7GgtIsm0ZRe7JCbuexcp9FDs6Z")
+api = Api()
 
 annotations_labels = api.get(f'volumes/334/statistics').json()['annotationLabels']
 

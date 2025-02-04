@@ -7,7 +7,7 @@ Reprojection toolbox for Metashape
 Run the following command in Miniforge:
 
 ```bash
-    mamba create -y -n reprojection_env -c conda-forge -c pytorch -c nvidia python=3.11 pyvista ultralytics pytorch torchvision torchaudio pytorch-cuda=11.8 tqdm pandas geopandas sqlalchemy scipy jupyterlab fiftyone sahi ipyfilechooser shapely pillow wandb treelib pyqt
+    mamba create -y -n reprojection_env -c conda-forge -c pytorch -c nvidia python=3.11 pyvista ultralytics pytorch torchvision torchaudio pytorch-cuda=11.8 tqdm pandas geopandas sqlalchemy scipy jupyterlab fiftyone sahi ipyfilechooser shapely pillow wandb treelib pyqt python-dotenv
     conda activate reprojection_env
 ```
 
@@ -43,3 +43,13 @@ Config file: create a .rpj text file containing the following:
 ```
 
 An example of a config file is provided in the example folder.
+
+
+## Advanced development
+
+Update the UI qt file:
+
+```bash
+    cd path/to/reprojection_toolbox/UI
+    pyuic5 -x main.ui -o main_window.py
+```
