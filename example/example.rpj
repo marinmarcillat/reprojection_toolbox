@@ -1,0 +1,10 @@
+{
+    "name": "Test",
+    "project_directory": "D:/tests/reproj_toolbox",
+    "video_directory": "",
+    "image_directory": "D:/tests/reproj_toolbox/images",
+    "metashape_project_path": "D:/tests/reproj_toolbox\\Test.psx",
+    "inference_model_path": "D:/model_training/trained_models/csv_corals_yolov8_PC/training/weights/best.pt",
+    "annotation_report_path": "D:/tests/reproj_toolbox\\inference_report.csv",
+    "reprojection_image_directory": "D:/tests/reproj_toolbox\\overlapping_images"
+}
