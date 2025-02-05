@@ -56,9 +56,23 @@ def pre_check_bounding_box(a1, a2):
 
     return no_overlap(np.c_[min1, max1], np.c_[min2, max2])
 
-def no_overlap(box1,box2,count_edge=False):
-    return any(no_overlap_1d(*z1,*z2,count_edge)
-        for z1,z2 in zip(box1,box2))
+def no_overlap(box1, box2, count_edge=False):
+    """
+    Vectorized bounding box overlap check.
+
+    Args:
+        box1 (np.ndarray): First bounding box with min and max coordinates
+        box2 (np.ndarray): Second bounding box with min and max coordinates
+        count_edge (bool, optional): Whether to count edge touching as overlap. Defaults to False.
+
+    Returns:
+        bool: True if boxes do not overlap, False otherwise
+    """
+    if count_edge:
+        return np.any(box1[:, 0] > box2[:, 1]) or np.any(box2[:, 0] > box1[:, 1])
+    else:
+        return np.any(box1[:, 0] >= box2[:, 1]) or np.any(box2[:, 0] >= box1[:, 1])
+
 
 def no_overlap_1d(min1,max1,min2,max2,count_edge=False):
     if count_edge:
@@ -218,62 +232,8 @@ if __name__ == "__main__":
 
     doc.save()
 
-
-
-
-
     print("stop")
     print("done")
-
-
-    #get_missing_keyframes(missing_frames, videos, biigle_dir, img_output_dir)
-
-    """
-    if not chunk.shapes:
-            chunk.shapes = Metashape.Shapes()
-            chunk.shapes.crs = chunk.crs
-
-    group1 = chunk.shapes.addGroup()
-    group1.label = "filtered"
-    group1.color = (0, 255, 0)
-    for ind in individuals:
-        shape = chunk.shapes.addShape()
-        shape.group = group1
-        shape.label = individuals[ind]["label"]
-        polygon = individuals[ind]["polygon"]
-        if polygon is not None:
-            poly_world = [np.array(chunk.crs.project(chunk.transform.matrix.mulp(Metashape.Vector(i)))) for i in polygon]
-            shape.geometry = Metashape.Geometry.Polygon(poly_world)
-    
-
-    group2 = chunk.shapes.addGroup()
-    group2.label = "all"
-    group2.color = (255, 0, 0)
-    for camera in camera_reproj_list:
-        for annotation in camera.annotations:
-            shape = chunk.shapes.addShape()
-            shape.group = group2
-            shape.label = annotation.label
-            polygon = reprojection.Biigle_polygon_to_polygon(annotation.keyframe_point)
-            polygon_3d = camera.reproject_polygon(polygon)
-            if polygon_3d is not None:
-                poly_world = [np.array(chunk.crs.project(chunk.transform.matrix.mulp(Metashape.Vector(i)))) for i in polygon_3d]
-                shape.geometry = Metashape.Geometry.Polygon(poly_world)
-
-
-    doc.save()
-
-    """
-
-
-    #plotter = pv.Plotter()
-    #plotter.enable_anti_aliasing('ssaa')
-    #mesh = pv.read(r"D:\metashape\victorHD\VictorHD.files\0\0\model\model\mesh.ply")
-    #plotter.add_mesh(mesh)
-    #for ind in individuals:
-    #    polygon = np.vstack([individuals[ind]["polygon"], individuals[ind]["polygon"][0]])
-    #    plotter.add_lines(polygon, connected=True, width=3)
-    #plotter.show()
 
 
 

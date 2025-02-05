@@ -151,25 +151,28 @@ class Window(QMainWindow, Ui_MainWindow):
         cameras_reprojectors = cu.chunk_to_camera_reprojector(self.chunk,
                                                               db_dir)  ## Get cameras from chunk and create a camera reprojector object for each
 
-        create_db = self.resetCb.isChecked()
-        if create_db:
+        if create_db := self.resetCb.isChecked() or not self.project_config.get("rp_db", False):
             print("Creating DB and adding annotations and reprojections")
             inference_report = pd.read_csv(self.project_config["annotation_report_path"])
             try:
-                inference_report = inference_report[["filename", "label", "confidence", "points"]]
+                inference_report = inference_report[["filename", "label_name", "confidence", "points"]]
             except KeyError:
                 print("Detected biigle format, adding confidence column")
-                inference_report = inference_report[["filename", "label", "points"]]
-                inference_report["confidence"] = 1
+                inference_report = inference_report[["filename", "label_name", "points"]].assign(confidence=1)
             session = annotations.inference_report_to_reprojection_database(db_dir, inference_report,
                                                                             cameras_reprojectors)
+            self.project_config["reprojected"] = True
 
         else:
             print("Getting DB from existing")
             session, path = rdb.open_reprojection_database_session(db_dir, False)
 
+        print("Adding annotations to individuals")
         session = annotations.annotations_to_individuals(session, cameras_reprojectors, db_dir)
+        self.project_config["individual"] = True
+        print("Plotting reprojections on metashape")
         mu.plot_reprojection_db(session, self.chunk, self.project_config["name"], db_dir)
+        print("Reprojection finished")
 
         self.doc.save()
         self.after_operation()

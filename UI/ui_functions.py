@@ -40,7 +40,10 @@ def reset_status_ui(qt):
     "tie_points",
     "aligned",
     "lowRes",
-    "highRes"
+    "highRes",
+    "rp_db",
+    "reprojected",
+    "individual",
     ]
     for check in checks_list:
         qt.project_config[check] = False
@@ -92,11 +95,21 @@ def get_status(qt):
         qt.project_config["overlapping_images"] = True
         qt.project_config["reprojection_image_directory"] = overlapping_images_dir
 
+    db_path = os.path.join(qt.project_config["project_directory"], f"reprojection_{qt.project_config['name']}", "reprojection.db")
+    if os.path.exists(db_path):
+        qt.project_config["rp_db"] = True
+        qt.reprojDB.setStyleSheet("QLabel {color : green; font-weight: bold}")
+        print("Reprojection database found")
+        # TODO: Add code to get database status
+
     if (os.path.exists(qt.project_config["image_directory"])
             and os.path.exists(qt.project_config["project_directory"])):
         qt.reconstruct.setEnabled(True)
 
-    if qt.project_config.get("aligned", False) and not (len(os.listdir(overlapping_images_dir)) != 0):
+    if (
+        qt.project_config.get("aligned", False)
+        and len(os.listdir(overlapping_images_dir)) == 0
+    ):
         qt.overlapping.setEnabled(True)
 
     if qt.project_config.get("lowRes", False):
