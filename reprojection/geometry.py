@@ -5,8 +5,10 @@ from shapely.validation import make_valid
 from scipy.spatial import ConvexHull
 import pyvista as pv
 from scipy.spatial import KDTree
+from scipy.spatial.distance import cdist
 import geopandas as gpd
 import pandas as pd
+import random
 import os
 
 
@@ -56,6 +58,19 @@ def get_bounding_box(point_list):
     z_list = [point[2] for point in point_list]
     return [[min(x_list), min(y_list), min(z_list)], [max(x_list), max(y_list), max(z_list)]]
 
+def get_nb_common_points(points1, points2):
+    """
+    Get the number of common points between two lists of 3D points.
+
+    Parameters:
+    points1 (list of list of float): First list of 3D points.
+    points2 (list of list of float): Second list of 3D points.
+
+    Returns:
+    int: Number of common points.
+    """
+    t = cdist(points1, points2)
+    return (t < 0.01).sum()
 
 def get_polyhull(points: np.ndarray):
     np_cloud = sor_filter(points)
@@ -76,19 +91,24 @@ def project_points_to_plane(points, plane_origin, plane_normal):
     return points - np.outer(dist, plane_normal)
 
 
-def excentricity_filter(points: np.ndarray,camera_center: np.ndarray, excentricity_threshold=5, k = 0.1):
-    """Filter points based on their excentricity."""
+def eccentricity_filter(points: np.ndarray,camera_center: np.ndarray, eccentricity_threshold=0.5, k = 1):
+    """Filter points based on the circle eccentricity."""
     d = np.linalg.norm(points - camera_center, axis=1)
     d_corr = d - np.min(d)
-    excentricity = np.quantile(d_corr, 0.75) / np.quantile(d_corr, 0.25)
-    if excentricity > excentricity_threshold:
+
+    d_exc = np.linalg.norm(
+        points - np.roll(points, len(points) // 2, axis=0), axis=1
+    )
+    semi_minor = min(d_exc)
+    semi_major = max(d_exc)
+    eccentricity = math.sqrt(1 - semi_minor / semi_major)
+    if eccentricity > eccentricity_threshold:
         d_max = np.mean(d_corr) + k * np.std(d_corr)
-        r = points[d_corr < d_max]
-        return r
+        return points[d_corr < d_max]
     return points
 
 
-def sor_filter(points: np.ndarray, k1=8, k2=1):
+def sor_filter(points: np.ndarray, k1=8, k2=2):
     """
     Applies Statistical Outlier Removal (SOR) filter to a set of points.
 
@@ -133,3 +153,77 @@ def transform_shapefile(shapefile, transformation, shift=None):
     export_path = os.path.join(os.path.dirname(shapefile), export_filename)
     gdf.to_file(export_path)
     return gdf
+
+
+def fit_plane(point_cloud: np.ndarray):
+    """
+    input
+        point_cloud : list of xyz values　numpy.array
+    output
+        plane_v : (normal vector of the best fit plane)
+        com : center of mass
+    """
+
+    com = np.sum(point_cloud, axis=0) / len(point_cloud)
+    # calculate the center of mass
+    q = point_cloud - com
+    # move the com to the origin and translate all the points (use numpy broadcasting)
+    Q = np.dot(q.T, q)
+    # calculate 3x3 matrix. The inner product returns total sum of 3x3 matrix
+    la, vectors = np.linalg.eig(Q)
+    # Calculate eigenvalues and eigenvectors
+    plane_v = vectors.T[np.argmin(la)]
+    # Extract the eigenvector of the minimum eigenvalue
+
+    return plane_v, com
+
+
+def filter_tie_points(polygon_3d, reproj_camera, tie_points):
+
+    reprojection_plane_normal, reprojection_plane_center = fit_plane(polygon_3d)
+    flatten_polygon = project_points_to_plane(polygon_3d, reprojection_plane_center, reprojection_plane_normal)
+    base_vert = [len(flatten_polygon)] + list(range(len(flatten_polygon)))
+    pv_flatten_polygon = pv.PolyData(flatten_polygon, base_vert)
+    #pv_flatten_polygon = base_data.delaunay_2d(edge_source=base_data)
+    reprojection_plane = pv.Plane(center=reprojection_plane_center, direction=reprojection_plane_normal, i_size=10,
+                                  j_size=10)
+
+    camera_center = np.array(reproj_camera.camera.center)
+    camera_direction = camera_center - np.array(reprojection_plane_center)
+    camera_plane = pv.Plane(i_size=10, j_size=10, center = camera_center, direction = camera_direction)
+
+
+    camera_direction = camera_center - np.array(reprojection_plane_center)
+
+    # correct the reprojection plane normal
+    if np.dot(reprojection_plane_normal, (camera_center - reprojection_plane_center)) > 0:
+        reprojection_plane_normal = -reprojection_plane_normal
+
+
+    extruded_cam_cylinder = pv_flatten_polygon.extrude_trim(camera_direction, camera_plane).triangulate()
+    extruded_safety_cylinder = pv_flatten_polygon.extrude_trim(-reprojection_plane_normal, reprojection_plane.translate(reprojection_plane_normal*0.2)).triangulate()
+
+
+    selected_1 = tie_points.select_enclosed_points(extruded_cam_cylinder, tolerance=0.01,)
+    pts_1 = tie_points.extract_points(
+        selected_1['SelectedPoints'].view(bool),
+        adjacent_cells=False,
+    )
+    selected_2 = tie_points.select_enclosed_points(extruded_safety_cylinder, tolerance=0.01,)
+    pts_2 = tie_points.extract_points(
+        selected_2['SelectedPoints'].view(bool),
+        adjacent_cells=False,
+    )
+    filtered_points = np.array(pv.merge([pts_1, pts_2]).points)
+    if len(filtered_points) == 0:
+        print("No tie points found")
+
+    return filtered_points
+
+
+
+
+
+
+
+

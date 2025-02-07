@@ -20,14 +20,6 @@ class Camera(Base):
     annotations = relationship("Annotation", backref="camera")
 
 
-class Inverse_reprojection(Base):
-    __tablename__ = 'InverseReprojections'
-    annotation_id = Column(Integer, ForeignKey('Annotations.id'), primary_key=True)
-    camera_name = Column(String(50), ForeignKey('Cameras.name'), primary_key=True)
-    inv_reproj_file = Column(String(100))
-    annotation = relationship("Annotation", backref="annotation",  foreign_keys=[annotation_id])
-    camera = relationship("Camera", backref="camera",  foreign_keys=[camera_name])
-
 
 class Annotation(Base):
     __tablename__ = 'Annotations'
@@ -38,6 +30,7 @@ class Annotation(Base):
     label = Column(String(50))
 
     polygon_3D_file = Column(String(60))
+    tie_point_file = Column(String(60))
     misses_percent = Column(Float)
 
     camera_name = Column(String(50), ForeignKey('Cameras.name'))

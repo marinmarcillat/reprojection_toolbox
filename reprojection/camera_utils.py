@@ -29,10 +29,10 @@ def chunk_to_camera_reprojector(chunk, db_dir):
 
     print("get camera reprojectors")
     meta_cameras = [camera for camera in chunk.cameras if camera.transform]
-    cameras_reprojectors = [
-        reprojection.CameraReprojector(camera, chunk, model, True,
-                                       os.path.join(cph_dir, f"{camera.label}.ply"))
+    return [
+        reprojection.CameraReprojector(
+            camera, chunk, model, cph_dir
+        )
         for camera in tqdm(meta_cameras)
     ]
-    return cameras_reprojectors
 

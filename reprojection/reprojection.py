@@ -12,13 +12,12 @@ import pyvista as pv
 
 class CameraReprojector:
 
-    def __init__(self, camera: Metashape.Camera, chunk: Metashape.Chunk, model: Metashape.Model, contour = False, contour_file = None):
+    def __init__(self, camera: Metashape.Camera, chunk: Metashape.Chunk, model: Metashape.Model, camera_files_dir):
         self.chunk = chunk
         self.camera = camera
         self.model = model
 
         self.distance_filter = 20
-        self.deviation_filter = 1
         self.decimation_factor = 20
 
         self.h = int(self.camera.photo.meta['File/ImageHeight'])
@@ -26,25 +25,18 @@ class CameraReprojector:
 
         self.annotations = []
 
-        self.biigle_photo = None
-        self.contour_file = contour_file
-        if contour:
-            if self.contour_file is not None:
-                if os.path.exists(self.contour_file):
-                    self.contour = pv.read(self.contour_file)
-                else:
-                    self.contour = self.get_contour()
-                    if self.contour is not None:
-                        self.contour.save(self.contour_file)
-            else:
-                self.contour = self.get_contour()
+        self.contour_file = os.path.join(camera_files_dir, f"{camera.label}.ply")
+
+        if not os.path.exists(self.contour_file):
+            self.contour = self.get_contour()
+            self.contour.save(self.contour_file)
+        else:
+            self.contour = pv.read(self.contour_file)
+
 
     def check_inv_reproj_inbound(self, point):
         x, y = point[0], point[1]
-        if (0 <= x <= self.w) and (0 <= y <= self.h):
-            return True
-        else:
-            return False
+        return 0 <= x <= self.w and 0 <= y <= self.h
 
     def inverse_reprojection(self, point):
         coords_2D = self.camera.project(point)
@@ -58,9 +50,7 @@ class CameraReprojector:
             p = self.inverse_reprojection(point)
             if p is not None:
                 res.append(p)
-        if len(res) != 0:
-            return res
-        return None
+        return res or None
 
 
     def reproject_point(self, point):
@@ -78,7 +68,7 @@ class CameraReprojector:
         polygon = [self.reproject_point(point) for point in polygon]
         polygon = np.array([point for point in polygon if point is not None])
         if len(polygon) > 2:
-            filtered = geometry.excentricity_filter(polygon, np.array(self.camera.center))
+            filtered = geometry.eccentricity_filter(polygon, np.array(self.camera.center))
             filtered = geometry.sor_filter(filtered)
             if len(filtered) > 2:
                 return filtered
@@ -94,15 +84,15 @@ class CameraReprojector:
         return np.array(point_internal)
 
     def get_contour(self):
-        point_list = mu.get_cameras_tie_points(self.chunk, [self.camera])
+        point_list =  mu.get_cameras_tie_points(self.chunk, [self.camera])
         if point_list is not None:
             ph = geometry.get_polyhull(point_list)
             return ph
 
     def check_contact(self, other_cam):
         if self.contour is not None and other_cam.contour is not None:
-            contact = geometry.check_contact(self.contour, other_cam.contour)
-            return contact
+            return geometry.check_contact(self.contour, other_cam.contour)
+        return False
 
     def get_cameras_in_view_annotation(self, points, cameras: list):
         cameras_in_view = []
@@ -111,9 +101,11 @@ class CameraReprojector:
 
         if polygon_3d is not None:
             cameras_in_view_camera = self.get_cameras_in_view_camera(cameras)
-            for other_camera in cameras_in_view_camera:
-                if other_camera.inverse_reproject_polygon(polygon_3d) is not None:
-                    cameras_in_view.append(other_camera)
+            cameras_in_view.extend(
+                other_camera
+                for other_camera in cameras_in_view_camera
+                if other_camera.inverse_reproject_polygon(polygon_3d) is not None
+            )
         return cameras_in_view
 
     def get_cameras_in_view_camera(self, cameras: list):
@@ -171,10 +163,7 @@ def Biigle_polygon_to_polygon(polygon):
     if len(polygon) == 3:
         return geometry.circle_to_polygons(polygon[:2], polygon[2])
     coords = list(zip(*[iter(polygon)] * 2))
-    if len(polygon) == 8:
-        return geometry.rectangle_to_polygons(coords)
-    else:
-        return coords
+    return geometry.rectangle_to_polygons(coords) if len(polygon) == 8 else coords
 
 def meta_polygon_to_biigle(polygon):
     coords = []

@@ -1,4 +1,5 @@
 import Metashape
+import pyvista as pv
 from shutil import copy2
 import reprojection.reprojection as reprojection
 import numpy as np
@@ -46,6 +47,18 @@ def get_overlapping_images(chunk, export_dir):
         copy2(camera_path, export_dir)
 
     return chunk  # To be destroyed after use with doc.remove([chunk])
+
+def get_all_tie_points(chunk, temp_dir):
+    tie_point_file = os.path.join(temp_dir, "tie_points.ply")
+    if not os.path.exists(tie_point_file):
+        points = chunk.tie_points.points
+        tie_points = pv.PolyData(np.array([p.coord[:3] for p in points]))
+        tie_points.save(tie_point_file)
+    else:
+        tie_points = pv.read(tie_point_file)
+
+    return tie_points
+
 
 
 def get_cameras_tie_points(chunk, cameras: list):
@@ -99,18 +112,16 @@ def plot_all_annotations(session, cameras_reprojectors):
                 if poly_3d.shape != ():
                     camera = session.query(rdb.Camera).filter_by(name=annotation.camera_name).first()
                     camera_reproj = reprojection.get_camera(camera.name, cameras_reprojectors)
-                    camera_reproj.plot_polygon3D(poly_3d, f"{annotation.label}")
+                    camera_reproj.plot_polygon3D(poly_3d, f"{individual.id}_{annotation.id}")
                     continue
 
-def export_shapes(chunk, export_dir, group_label, epsg = "EPSG::32629", shift = [0, 0, 0]):
+def export_shapes(chunk, export_dir, group_label, epsg = "EPSG::32629", shift=None):
+    if shift is None:
+        shift = [0, 0, 0]
     if not chunk.shapes:
         print("No shapes found")
         return
-    group = None
-    for g in chunk.shapes.groups:
-        if g.label == group_label:
-            group = g
-            break
+    group = next((g for g in chunk.shapes.groups if g.label == group_label), None)
     if group is None:
         print("No group found")
         return

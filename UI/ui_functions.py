@@ -36,6 +36,7 @@ def reset_status_ui(qt):
         action.setEnabled(False)
 
     checks_list = [
+    "read_only",
     "overlapping_images",
     "tie_points",
     "aligned",
@@ -79,8 +80,9 @@ def get_status(qt):
 
         meta_status = get_meta_status(qt)
         print(f'Metashape status: {meta_status}')
-        if meta_status == "read_only":
-            read_only_warning()
+
+    if qt.project_config.get("read_only", False) :
+        read_only_warning()
 
 
     if os.path.exists(qt.project_config["inference_model_path"]):

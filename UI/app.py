@@ -151,7 +151,9 @@ class Window(QMainWindow, Ui_MainWindow):
         cameras_reprojectors = cu.chunk_to_camera_reprojector(self.chunk,
                                                               db_dir)  ## Get cameras from chunk and create a camera reprojector object for each
 
-        if create_db := self.resetCb.isChecked() or not self.project_config.get("rp_db", False):
+        tie_points = mu.get_all_tie_points(self.chunk, db_dir)
+
+        if (self.resetCb.isChecked()) or not (self.project_config.get("rp_db", False)):
             print("Creating DB and adding annotations and reprojections")
             inference_report = pd.read_csv(self.project_config["annotation_report_path"])
             try:
@@ -160,7 +162,7 @@ class Window(QMainWindow, Ui_MainWindow):
                 print("Detected biigle format, adding confidence column")
                 inference_report = inference_report[["filename", "label_name", "points"]].assign(confidence=1)
             session = annotations.inference_report_to_reprojection_database(db_dir, inference_report,
-                                                                            cameras_reprojectors)
+                                                                            cameras_reprojectors, tie_points)
             self.project_config["reprojected"] = True
 
         else:
@@ -171,7 +173,8 @@ class Window(QMainWindow, Ui_MainWindow):
         session = annotations.annotations_to_individuals(session, cameras_reprojectors, db_dir)
         self.project_config["individual"] = True
         print("Plotting reprojections on metashape")
-        mu.plot_reprojection_db(session, self.chunk, self.project_config["name"], db_dir)
+        #mu.plot_reprojection_db(session, self.chunk, self.project_config["name"], db_dir)
+        mu.plot_all_annotations(session, cameras_reprojectors)
         print("Reprojection finished")
 
         self.doc.save()
@@ -196,6 +199,10 @@ class Window(QMainWindow, Ui_MainWindow):
         print("Operation finished")
         ui_functions.get_status(self)
         project_file.write_json(self.project_config_path, self.project_config)
+
+    def closeEvent(self, event):
+        del self.doc
+        event.accept()
 
 
 if __name__ == "__main__":

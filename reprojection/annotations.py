@@ -15,6 +15,11 @@ def save_3d_polygon(poly_3d, save_dir, annotation_id):
     np.save(filepath, poly_3d)
     return filepath
 
+def save_tie_points(tie_points, save_dir, annotation_id):
+    filepath = os.path.join(save_dir, f"{annotation_id}_tp3d.npy")
+    np.save(filepath, tie_points)
+    return filepath
+
 def save_polygon(poly, save_dir, annotation_id, camera_name):
     filepath = os.path.join(save_dir, f"{annotation_id}_{camera_name}_ir.npy")
     np.save(filepath, poly)
@@ -23,9 +28,15 @@ def save_polygon(poly, save_dir, annotation_id, camera_name):
 def get_near_cameras(session, camera: rdb.Camera, threshold = 10):
     x, y, z = camera.center_x, camera.center_y, camera.center_z
     filtered = []
-    for c in session.query(rdb.Camera).all():
-        if np.linalg.norm(np.array([c.center_x, c.center_y, c.center_z]) - np.array([x, y, z])) < threshold:
-            filtered.append(c)
+    filtered.extend(
+        c
+        for c in session.query(rdb.Camera).all()
+        if np.linalg.norm(
+            np.array([c.center_x, c.center_y, c.center_z])
+            - np.array([x, y, z])
+        )
+        < threshold
+    )
     return filtered
 
 def filter_cam_on_contact(session, camera_name_list: list[str], camera: rdb.Camera):
@@ -38,6 +49,8 @@ def filter_cam_on_contact(session, camera_name_list: list[str], camera: rdb.Came
     return contacts
 
 def check_polygon_contact(ir, other_ir):
+    if ir is None or other_ir is None:
+        return False
     if os.path.exists(ir.inv_reproj_file) and os.path.exists(other_ir.inv_reproj_file):
         sh1 = np.load(ir.inv_reproj_file, allow_pickle=True)
         sh2 = np.load(other_ir.inv_reproj_file, allow_pickle=True)
@@ -80,39 +93,25 @@ def no_overlap_1d(min1,max1,min2,max2,count_edge=False):
     else:
         return min1>=max2 or min2>=max1
 
+def check_overlap(annotation1, annotation2):
+    if annotation1 == annotation2:
+        return False
 
-def get_inverse_reprojection(session, annotation: rdb.Annotation, camera: rdb.Camera, reprojector: reprojection.CameraReprojector, temp_dir):
-    result = session.query(rdb.Inverse_reprojection).filter_by(annotation_id=annotation.id,
-                                                                 camera_name=camera.name).first()
-    if result is None:
-        poly_3d = np.load(annotation.polygon_3D_file, allow_pickle=True)
-        if poly_3d.shape != () and poly_3d is not None:
-            inv_rep = reprojector.inverse_reproject_polygon(poly_3d)
-            filepath = save_polygon(inv_rep, temp_dir, annotation.id, reprojector.camera.label)
-            result = rdb.Inverse_reprojection(annotation_id=annotation.id, camera_name=reprojector.camera.label,
-                                          inv_reproj_file=filepath)
-            session.add(result)
-            session.commit()
-    return result
-
-def check_overlap(session, camera1, camera2, reproj_cam1, reproj_cam2, annotation1, annotation2, temp_dir):
-    r = 0
     if pre_check_bounding_box(annotation1, annotation2): # Check bounding box overlap first
         return False
 
-    inv_ann = get_inverse_reprojection(session, annotation1, camera1, reproj_cam1, temp_dir)
-    other_inv_ann = get_inverse_reprojection(session, annotation2, camera1, reproj_cam1, temp_dir)
-    if other_inv_ann is not None and inv_ann is not None:
-        if check_polygon_contact(inv_ann, other_inv_ann):
-            r+=1
-    inv_ann = get_inverse_reprojection(session, annotation1, camera2,  reproj_cam2, temp_dir)
-    other_inv_ann = get_inverse_reprojection(session, annotation2, camera2,  reproj_cam2, temp_dir)
-    if other_inv_ann is not None and inv_ann is not None:
-        if check_polygon_contact(inv_ann, other_inv_ann):
-            r+=1
-    return r==2
+    tp1 = np.load(annotation1.tie_point_file)
+    tp2 = np.load(annotation2.tie_point_file)
 
-def inference_report_to_reprojection_database(db_dir, inference_report, cameras_reprojectors, db_name="reprojection"):
+    i = geometry.get_nb_common_points(tp1, tp2)
+    u = min([len(tp1),len(tp2)])
+    if u == 0 or i == 0:
+        return False
+    iou = i/u
+
+    return iou > 0.1
+
+def inference_report_to_reprojection_database(db_dir, inference_report, cameras_reprojectors, tie_points, db_name="reprojection"):
     if type(inference_report.points[0]) == str:
         inference_report['points'] = inference_report.points.apply(lambda x: literal_eval(str(x)))
 
@@ -140,16 +139,19 @@ def inference_report_to_reprojection_database(db_dir, inference_report, cameras_
                 a.confidence = annotation.confidence
             session.add(a)
             session.commit()
-            poly3D_file = os.path.join(temp_dir, f"{a.id}_annotation_p3d.npy")
-            poly_filepath = os.path.join(temp_dir, f"{a.id}_{db_camera.name}_ir.npy")
-            if not (os.path.exists(poly3D_file) and os.path.exists(poly_filepath)):
+            poly3d_file = os.path.join(temp_dir, f"{a.id}_annotation_p3d.npy")
+            tie_point_file = os.path.join(temp_dir, f"{a.id}_tp3d.npy")
+            if not (os.path.exists(poly3d_file) and os.path.exists(tie_point_file)):
                 polygon, polygon_3d = reprojection.get_polygon_and_3d_poly(annotation.points, reproj_camera)
                 if polygon_3d is not None and polygon is not None:  # Check if polygon is not none
-                    poly3D_file = save_3d_polygon(polygon_3d, temp_dir, a.id)
+                    filtered_tie_points = geometry.filter_tie_points(polygon_3d, reproj_camera, tie_points)
+                    poly3d_file = save_3d_polygon(polygon_3d, temp_dir, a.id)
+                    tie_point_file = save_tie_points(filtered_tie_points, temp_dir, a.id)
                 else:
                     session.delete(a) # Remove annotation if no valid polygon
                     continue
-            a.polygon_3D_file = poly3D_file
+            a.polygon_3D_file = poly3d_file
+            a.tie_point_file = tie_point_file
     session.commit()
     return session
 
@@ -163,19 +165,17 @@ def annotations_to_individuals(session, cameras_reprojectors, db_dir):
     for camera in tqdm(session.query(rdb.Camera).all()):
         annotations = session.query(rdb.Annotation).filter_by(camera_name=camera.name).all()
         if len(annotations) != 0:
-            reproj_cam = reprojection.get_camera(camera.name, cameras_reprojectors)
             near_cams = [c.name for c in get_near_cameras(session, camera)]
             for annotation in annotations:
                 if annotation.individual_id is None: # Check if annotation has been attributed to individual
-                    same_ind = []
                     near_annotations = session.query(rdb.Annotation).filter_by(label = annotation.label).filter(rdb.Annotation.camera_name.in_(near_cams)).all()
                     filtered_cams = filter_cam_on_contact(session, near_cams, camera)
                     filtered_annotations = [annotation for annotation in near_annotations if annotation.camera_name in filtered_cams]
-                    for other_annotation in filtered_annotations: # Check if near other annotations are same individual
-                        other_camera = session.query(rdb.Camera).filter_by(name=other_annotation.camera_name).first()
-                        other_reproj_cam = reprojection.get_camera(other_annotation.camera_name, cameras_reprojectors)
-                        if check_overlap(session, camera, other_camera, reproj_cam, other_reproj_cam, annotation, other_annotation, temp_dir):
-                            same_ind.append(other_annotation)
+                    same_ind = [
+                        other_annotation
+                        for other_annotation in filtered_annotations
+                        if check_overlap(annotation, other_annotation)
+                    ]
                     # Check if other annotations have been attributed to individual
                     ind_list = list(set([a.individual_id for a in same_ind if a.individual_id is not None]))
                     if len(ind_list) != 0: # If there are other annotations attributed to individuals
