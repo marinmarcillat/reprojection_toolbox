@@ -9,6 +9,7 @@ import pandas as pd
 import UI.project_file as project_file
 from UI.main_window import Ui_MainWindow
 import UI.ui_functions as ui_functions
+import contextlib
 from reconstruction import reconstruct
 from reprojection import metashape_utils as mu
 from object_detection import fifty_one_utils as fou
@@ -17,6 +18,7 @@ from object_detection import inference
 from reprojection import camera_utils as cu
 from reprojection import annotations
 from reprojection import reprojection_database as rdb
+from reprojection import reprojection_launcher
 
 
 
@@ -43,6 +45,8 @@ class Window(QMainWindow, Ui_MainWindow):
 
         self.doc = None
         self.chunk = None
+        
+        self.session = None
 
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
 
@@ -96,9 +100,8 @@ class Window(QMainWindow, Ui_MainWindow):
             self.doc.addChunk()
             self.doc.save()
             self.chunk = self.doc.chunk
-        else:
-            if self.get_meta_chunk() is None:
-                return None
+        elif self.get_meta_chunk() is None:
+            return None
 
         if len(self.chunk.cameras) == 0:
             print("No cameras found, adding those from image directory")
@@ -148,37 +151,12 @@ class Window(QMainWindow, Ui_MainWindow):
         if self.get_meta_chunk() is None:
             return None
 
-        cameras_reprojectors = cu.chunk_to_camera_reprojector(self.chunk,
-                                                              db_dir)  ## Get cameras from chunk and create a camera reprojector object for each
+        reprojection_thread = reprojection_launcher.ReprojectionThread(self, self.chunk, db_dir)
+        reprojection_thread.prog_val.connect(self.set_prog)
+        reprojection_thread.finished.connect(self.after_reprojection)
+        reprojection_thread.start()
+        print("launch reconstruction")
 
-        tie_points = mu.get_all_tie_points(self.chunk, db_dir)
-
-        if (self.resetCb.isChecked()) or not (self.project_config.get("rp_db", False)):
-            print("Creating DB and adding annotations and reprojections")
-            inference_report = pd.read_csv(self.project_config["annotation_report_path"])
-            try:
-                inference_report = inference_report[["filename", "label_name", "confidence", "points"]]
-            except KeyError:
-                print("Detected biigle format, adding confidence column")
-                inference_report = inference_report[["filename", "label_name", "points"]].assign(confidence=1)
-            session = annotations.inference_report_to_reprojection_database(db_dir, inference_report,
-                                                                            cameras_reprojectors, tie_points)
-            self.project_config["reprojected"] = True
-
-        else:
-            print("Getting DB from existing")
-            session, path = rdb.open_reprojection_database_session(db_dir, False)
-
-        print("Adding annotations to individuals")
-        session = annotations.annotations_to_individuals(session, cameras_reprojectors, db_dir)
-        self.project_config["individual"] = True
-        print("Plotting reprojections on metashape")
-        #mu.plot_reprojection_db(session, self.chunk, self.project_config["name"], db_dir)
-        mu.plot_all_annotations(session, cameras_reprojectors)
-        print("Reprojection finished")
-
-        self.doc.save()
-        self.after_operation()
 
     def normalOutputWritten(self, text):
         """Append text to the QTextEdit."""
@@ -195,6 +173,10 @@ class Window(QMainWindow, Ui_MainWindow):
     def set_prog(self, val):
         self.progressBar.setValue(val)
 
+    def after_reprojection(self):
+        self.doc.save()
+        self.after_operation()
+
     def after_operation(self):
         print("Operation finished")
         ui_functions.get_status(self)
@@ -202,6 +184,8 @@ class Window(QMainWindow, Ui_MainWindow):
 
     def closeEvent(self, event):
         del self.doc
+        with contextlib.suppress(AttributeError):
+            self.session.close()
         event.accept()
 
 

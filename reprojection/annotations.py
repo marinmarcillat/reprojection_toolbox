@@ -115,7 +115,7 @@ def inference_report_to_reprojection_database(db_dir, inference_report, cameras_
     if type(inference_report.points[0]) == str:
         inference_report['points'] = inference_report.points.apply(lambda x: literal_eval(str(x)))
 
-    session, path = rdb.open_reprojection_database_session(db_dir, True, db_name)
+    session, _ = rdb.open_reprojection_database_session(db_dir, True, db_name)
 
     temp_dir = os.path.join(db_dir, "temp")
     if not os.path.exists(temp_dir):
@@ -155,7 +155,7 @@ def inference_report_to_reprojection_database(db_dir, inference_report, cameras_
     session.commit()
     return session
 
-def annotations_to_individuals(session, cameras_reprojectors, db_dir):
+def annotations_to_individuals(session, db_dir):
 
     temp_dir = os.path.join(db_dir, "temp")
     if not os.path.exists(temp_dir):

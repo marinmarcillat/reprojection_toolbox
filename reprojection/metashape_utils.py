@@ -79,41 +79,40 @@ def get_cameras_tie_points(chunk, cameras: list):
     if len(point_list) > 0:
         return point_list
 
-def plot_reprojection_db(session, chunk, group_label, db_dir, confidence = 0.5):
-    cameras_reprojectors = cu.chunk_to_camera_reprojector(chunk, db_dir)
 
+
+def plot_all_annotations(session, cameras_reprojectors, chunk, group_label, pointify = True, confidence_threshold = 0.5):
     if not chunk.shapes:
         chunk.shapes = Metashape.Shapes()
         chunk.shapes.crs = chunk.crs
     group = chunk.shapes.addGroup()
     group.label = group_label
 
-
-    for individuals in tqdm(session.query(rdb.Individual).all()):
-        annotations = session.query(rdb.Annotation).filter_by(individual_id=individuals.id).filter(rdb.Annotation.confidence>confidence).all()
-        poly_3d_list = [np.load(annotation.polygon_3D_file, allow_pickle=True) for annotation in annotations if annotation is not None]
-        if len(poly_3d_list) == 0:
-            continue
-        poly_3d_coords = np.concatenate(poly_3d_list, axis=0)
-        centroid = np.mean(poly_3d_coords, axis=0)
-        if len(centroid) == 3:
-            camera = session.query(rdb.Camera).filter_by(name=annotations[0].camera_name).first()
-            camera_reproj = reprojection.get_camera(camera.name, cameras_reprojectors)
-            camera_reproj.plot_point(centroid, f"{annotations[0].label}", group)
-
-
-def plot_all_annotations(session, cameras_reprojectors):
     print("plot all individuals")
     for individual in tqdm(session.query(rdb.Individual).all()):
-        annotations = session.query(rdb.Annotation).filter_by(individual_id=individual.id).all()
+        annotations = session.query(rdb.Annotation).filter_by(individual_id=individual.id).filter(rdb.Annotation.confidence>confidence_threshold).all()
+
+        poly_3d_list = []
         for annotation in annotations:
             if annotation is not None:
                 poly_3d = np.load(annotation.polygon_3D_file, allow_pickle=True)
                 if poly_3d.shape != ():
-                    camera = session.query(rdb.Camera).filter_by(name=annotation.camera_name).first()
-                    camera_reproj = reprojection.get_camera(camera.name, cameras_reprojectors)
-                    camera_reproj.plot_polygon3D(poly_3d, f"{individual.id}_{annotation.id}")
-                    continue
+                    if pointify:
+                        poly_3d_list.append(poly_3d)
+                    else:
+                        camera = session.query(rdb.Camera).filter_by(name=annotation.camera_name).first()
+                        camera_reproj = reprojection.get_camera(camera.name, cameras_reprojectors)
+                        camera_reproj.plot_polygon3D(poly_3d, f"{individual.id}_{annotation.id}")
+        if pointify:
+            if not poly_3d_list:
+                continue
+            poly_3d_coords = np.concatenate(poly_3d_list, axis=0)
+            centroid = np.mean(poly_3d_coords, axis=0)
+            if len(centroid) == 3:
+                camera = session.query(rdb.Camera).filter_by(name=annotations[0].camera_name).first()
+                camera_reproj = reprojection.get_camera(camera.name, cameras_reprojectors)
+                camera_reproj.plot_point(centroid, f"{annotations[0].label}", group)
+
 
 def export_shapes(chunk, export_dir, group_label, epsg = "EPSG::32629", shift=None):
     if shift is None:

@@ -58,6 +58,11 @@ def open_reprojection_database_session(db_dir, create: bool, db_name='reprojecti
     return sessionmaker(bind=engine, autoflush=True)(), db_path
 
 
+def get_db_status(qt, session):
+    if len(session.query(Individual).all()) != 0:
+        qt.project_config["individual"] = True
+    if len(session.query(Annotation).all()) != 0:
+        qt.project_config["reprojected"] = True
 
 
 

@@ -1,4 +1,5 @@
 import os
+import reprojection.reprojection_database as rdb
 from UI.get_meta_status import get_meta_status
 from PyQt5.QtWidgets import QMessageBox
 
@@ -99,10 +100,7 @@ def get_status(qt):
 
     db_path = os.path.join(qt.project_config["project_directory"], f"reprojection_{qt.project_config['name']}", "reprojection.db")
     if os.path.exists(db_path):
-        qt.project_config["rp_db"] = True
-        qt.reprojDB.setStyleSheet("QLabel {color : green; font-weight: bold}")
-        print("Reprojection database found")
-        # TODO: Add code to get database status
+        session_status_manager(qt)
 
     if (os.path.exists(qt.project_config["image_directory"])
             and os.path.exists(qt.project_config["project_directory"])):
@@ -130,6 +128,23 @@ def get_status(qt):
             and os.path.exists(qt.project_config["project_directory"])
             and os.path.exists(qt.project_config["inference_model_path"])):
         qt.runAll.setEnabled(True)
+
+
+def session_status_manager(qt):
+    qt.project_config["rp_db"] = True
+    qt.reprojDB.setStyleSheet("QLabel {color : green; font-weight: bold}")
+    print("Reprojection database found")
+    if qt.session is not None:
+        rdb.get_db_status(qt, qt.session)
+    else:
+        session, _ = rdb.open_reprojection_database_session(os.path.join(qt.project_config["project_directory"], f"reprojection_{qt.project_config['name']}"), False)
+        rdb.get_db_status(qt, session)
+        session.close()
+
+    if qt.project_config.get("reprojected", False):
+        qt.reprojected.setStyleSheet("QLabel {color : green; font-weight: bold}")
+    if qt.project_config.get("individual", False):
+        qt.individual.setStyleSheet("QLabel {color : green; font-weight: bold}")
 
 
 
