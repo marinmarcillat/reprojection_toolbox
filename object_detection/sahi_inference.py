@@ -23,8 +23,7 @@ def sahi_inference(model_path, dataset, label_field = "detections", slice = 2000
 
     print("SAHI inference")
     for sample in dataset.iter_samples(progress=True):
-        predict_with_slicing(sample, label_field="large_slices", detection_model=detection_model , slice_height=slice, slice_width=slice, **kwargs)
-
+        predict_with_slicing(sample, label_field=label_field, detection_model=detection_model , slice_height=slice, slice_width=slice, **kwargs)
 
     return dataset
 

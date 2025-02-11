@@ -14,7 +14,7 @@ from reconstruction import reconstruct
 from reprojection import metashape_utils as mu
 from object_detection import fifty_one_utils as fou
 from object_detection import sahi_inference as sahi
-from object_detection import inference
+from object_detection import inference_launcher
 from reprojection import camera_utils as cu
 from reprojection import annotations
 from reprojection import reprojection_database as rdb
@@ -124,23 +124,11 @@ class Window(QMainWindow, Ui_MainWindow):
         self.after_operation()
 
     def launch_inference(self):
-        print("launching inference")
-
-        print("create fiftyone dataset")
-        export_dir = os.path.join(self.project_config["project_directory"], "overlapping_images")
-        dataset = fou.import_image_directory(export_dir, "overlapping_image_dataset")
-
-        print("run inference")
-        dataset_inf = inference.YOLO_inference(dataset, self.project_config["inference_model_path"])
-
-        print("export inference report")
-        inference_report = fou.fo_to_csv(dataset_inf)
-        inference_report_path = os.path.join(self.project_config["project_directory"], "inference_report.csv")
-        pd.DataFrame(inference_report).to_csv(inference_report_path, index=False)
-
-        self.project_config["annotation_report_path"] = inference_report_path
-
-        self.after_operation()
+        inference_thread = inference_launcher.InferenceThread(self)
+        inference_thread.prog_val.connect(self.set_prog)
+        inference_thread.finished.connect(self.after_operation)
+        inference_thread.start()
+        print("Launch inference")
 
     def launch_reprojection(self):
 
