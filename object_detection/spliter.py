@@ -3,7 +3,7 @@ from PIL import Image
 from shapely.geometry import Polygon
 import fiftyone as fo
 from tqdm import tqdm
-import fifty_one_utils as fou
+import object_detection.fifty_one_utils as fou
 import os
 
 
@@ -12,9 +12,13 @@ def dataset_tiler(dataset, export_path, slice_size):
     ds_name = fou.generate_rd_suffix("sliced_dataset")
 
     sliced_dataset = fo.Dataset(ds_name)
+    sliced_dataset.default_classes = dataset.default_classes
 
     new_samples = []
     for sample in tqdm(dataset, total=len(dataset)):
+        if sample.detections is None:
+            continue
+
         im = Image.open(sample.filepath)
         imr = np.array(im, dtype=np.uint8)
         height = imr.shape[0]

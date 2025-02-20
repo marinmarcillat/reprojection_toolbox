@@ -349,21 +349,10 @@
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="runAll">
-      <property name="text">
-       <string>Run all</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="Line" name="line_2">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="QPushButton" name="reconstruct">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="maximumSize">
        <size>
         <width>100</width>
@@ -377,6 +366,9 @@
     </item>
     <item>
      <widget class="QPushButton" name="overlapping">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="maximumSize">
        <size>
         <width>150</width>
@@ -390,6 +382,9 @@
     </item>
     <item>
      <widget class="QPushButton" name="inference">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="maximumSize">
        <size>
         <width>100</width>
@@ -405,6 +400,9 @@
      <layout class="QHBoxLayout" name="horizontalLayout_7">
       <item>
        <widget class="QPushButton" name="reprojection">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="maximumSize">
          <size>
           <width>100</width>

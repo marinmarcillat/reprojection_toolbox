@@ -48,6 +48,8 @@ class Window(QMainWindow, Ui_MainWindow):
         
         self.session = None
 
+        self.processing = False
+
         sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
 
 
@@ -90,6 +92,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
     def launch_reconstruction(self):
+
         print("launching reconstruction")
         if not os.path.exists(self.project_config['metashape_project_path']):
             self.doc = Metashape.Document()
@@ -117,6 +120,7 @@ class Window(QMainWindow, Ui_MainWindow):
     def launch_overlapping(self):
         if self.get_meta_chunk() is None:
             return None
+
 
         export_dir = os.path.join(self.project_config["project_directory"], "overlapping_images")
         temp_chunk = mu.get_overlapping_images(self.chunk, export_dir)
@@ -146,6 +150,7 @@ class Window(QMainWindow, Ui_MainWindow):
         print("launch reconstruction")
 
 
+
     def normalOutputWritten(self, text):
         """Append text to the QTextEdit."""
         cursor = self.debug.textCursor()
@@ -169,6 +174,7 @@ class Window(QMainWindow, Ui_MainWindow):
         print("Operation finished")
         ui_functions.get_status(self)
         project_file.write_json(self.project_config_path, self.project_config)
+        self.processing = False
 
     def closeEvent(self, event):
         del self.doc

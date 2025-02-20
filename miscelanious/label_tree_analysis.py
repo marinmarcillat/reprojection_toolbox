@@ -3,9 +3,15 @@ from Biigle.biigle import Api
 
 api = Api()
 
-annotations_labels = api.get(f'volumes/334/statistics').json()['annotationLabels']
+volume_id =  334
+lt_id = 60
 
-lt = api.get(f'label-trees/{60}').json()["labels"]
+annotations_labels = api.get(f'volumes/{volume_id}/statistics').json()[
+    'annotationLabels'
+]
+
+lt = api.get(f'label-trees/{lt_id}').json()["labels"]
+
 
 tree = Tree()
 tree.create_node("Root", "root")

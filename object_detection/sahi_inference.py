@@ -22,9 +22,10 @@ def sahi_inference(model_path, dataset, label_field = "detections", slice = 2000
     kwargs = {"overlap_height_ratio": 0.2, "overlap_width_ratio": 0.2}
 
     print("SAHI inference")
-    for sample in dataset.iter_samples(progress=True):
+    for sample in dataset.iter_samples(progress=True, autosave=True):
         predict_with_slicing(sample, label_field=label_field, detection_model=detection_model , slice_height=slice, slice_width=slice, **kwargs)
-
+    dataset.default_classes = list(detection_model.model.names.values())
+    dataset.save()
     return dataset
 
 if __name__ == '__main__':

@@ -27,7 +27,6 @@ def reset_status_ui(qt):
         label.setStyleSheet("QLabel {color : black; font-weight: roman}")
 
     action_list = [
-        qt.runAll,
         qt.reconstruct,
         qt.overlapping,
         qt.inference,
@@ -123,11 +122,6 @@ def get_status(qt):
             and os.path.exists(qt.project_config["reprojection_image_directory"])
             and qt.project_config.get("lowRes", False)):
         qt.reprojection.setEnabled(True)
-
-    if (os.path.exists(qt.project_config["image_directory"])
-            and os.path.exists(qt.project_config["project_directory"])
-            and os.path.exists(qt.project_config["inference_model_path"])):
-        qt.runAll.setEnabled(True)
 
 
 def session_status_manager(qt):
