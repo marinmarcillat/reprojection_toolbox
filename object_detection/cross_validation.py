@@ -88,4 +88,6 @@ def k_fold_cross_validation(dataset, export_dir, ksplit = 5):
                 for detection in sample.detections.detections:
                     f.write(make_yolo_row(detection, classes_dict[detection.label]) + "\n")
 
+    return ds_yamls
+
 

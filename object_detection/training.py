@@ -1,17 +1,11 @@
 from object_detection.fifty_one_utils import import_image_csv_report, import_image_directory, get_classes
-import fiftyone as fo
 from object_detection.spliter import dataset_tiler
 import ultralytics.data.build as build
 from object_detection.weightedDataset import YOLOWeightedDataset
-import pandas as pd
 from object_detection.fifty_one_utils import get_classes
 from object_detection.cross_validation import k_fold_cross_validation
 from fiftyone import ViewField as F
-from sklearn.model_selection import KFold
-import datetime
-import yaml
-import shutil
-from pathlib import Path
+from ultralytics import YOLO
 
 build.YOLODataset = YOLOWeightedDataset
 
@@ -32,7 +26,23 @@ dataset = dataset.match(F("detections.detections").length() != 0)
 
 tiled_dataset = dataset_tiler(dataset, temp_dir, 2000)
 
-k_fold_cross_validation(tiled_dataset, export_dir)
+ds_yamls = k_fold_cross_validation(tiled_dataset, export_dir)
+
+weights_path = "path/to/weights.pt"
+model = YOLO(weights_path, task="detect")
+
+results = {}
+
+# Define your additional arguments here
+batch = 16
+project = "kfold_demo"
+epochs = 100
+
+for k in range(5):
+    dataset_yaml = ds_yamls[k]
+    model = YOLO(weights_path, task="detect")
+    model.train(data=dataset_yaml, epochs=epochs, batch=batch, project=project)  # include any train arguments
+    results[k] = model.metrics  # save output metrics for further analysis
 
 print("stop")
 
