@@ -3,8 +3,8 @@ from Biigle.biigle import Api
 
 api = Api()
 
-volume_id =  334
-lt_id = 60
+volume_id =  91
+lt_id = 78
 
 annotations_labels = api.get(f'volumes/{volume_id}/statistics').json()[
     'annotationLabels'

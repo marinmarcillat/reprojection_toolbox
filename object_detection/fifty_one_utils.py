@@ -12,6 +12,20 @@ import cv2
 from shutil import copy2
 import object_detection.biigle_utils as biigle_utils
 
+def make_yolo_row(label, target):
+    xtl, ytl, w, h = label.bounding_box
+    xc = xtl + 0.5 * w
+    yc = ytl + 0.5 * h
+    return "%d %f %f %f %f" % (target, xc, yc, w, h)
+
+def get_classes(dataset, field = "detections"):
+    if dataset.default_classes:
+        return dataset.default_classes
+    label_list = []
+    for sample in dataset.head(1000):
+        if sample.detections is not None:
+            label_list.extend(detect.label for detect in sample[field].detections)
+    return list(set(label_list))
 
 def relative_to_absolute(bbox, w, h):
     x, y, width, height = bbox

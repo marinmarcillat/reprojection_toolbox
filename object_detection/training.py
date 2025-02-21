@@ -1,40 +1,39 @@
-import wandb
-from wandb.integration.ultralytics import add_wandb_callback
+from object_detection.fifty_one_utils import import_image_csv_report, import_image_directory, get_classes
+import fiftyone as fo
+from object_detection.spliter import dataset_tiler
+import ultralytics.data.build as build
+from object_detection.weightedDataset import YOLOWeightedDataset
+import pandas as pd
+from object_detection.fifty_one_utils import get_classes
+from object_detection.cross_validation import k_fold_cross_validation
+from fiftyone import ViewField as F
+from sklearn.model_selection import KFold
+import datetime
+import yaml
+import shutil
+from pathlib import Path
 
-from ultralytics import YOLO
-import os
+build.YOLODataset = YOLOWeightedDataset
 
-os.environ["WANDB_SILENT"] = "true"
+report_path = r"D:\tests\model_unbalanced\334-deep-learning-coral-garden-pl814-odis.csv"
+image_dir = r"Z:\images\chereef_2022\pl814_ODIS"
+export_dir = r"D:\tests\model_unbalanced\data"
+temp_dir = r"D:\tests\model_unbalanced\temp"
 
 
-if __name__ == '__main__':
-    data_path = r"D:\model_training\trained_models\coco_multilabel_yolov11l_datarmor\sliced_yolo\dataset.yaml"
-    save_dir = r"D:\model_training\trained_models\coco_multilabel_yolov11l_datarmor\sliced_yolo_training"
-    model_path = r"D:\model_training\untrained_models\yolo11l.pt"
-    name = "multilabel_sliced_yolov11_luisa"
-    wandb_dir = os.path.join(save_dir, "wandb")
+samples = import_image_csv_report(report_path, image_dir)
+dataset = import_image_directory(image_dir, "test_unbalanced")
+dataset.add_samples(samples)
 
-    wandb.init(
-        # set the wandb project where this run will be logged
-        project="Corals",
-        name=name,
-        dir=save_dir,
-        # track hyperparameters and run metadata
-        config={
-            "initial_model": "yolov11l",
-            "architecture": "YOLOV11",
-            "dataset": "Luisa only, sliced",
-            "imgsz": 1024,
-            "epochs": 100,
-        }
-    )
+dataset.default_classes = get_classes(dataset)
 
-    model = YOLO(model_path)
+ # replace with 'path/to/dataset' for your custom data
+dataset = dataset.match(F("detections.detections").length() != 0)
 
-    add_wandb_callback(model, enable_train_validation_logging=False, enable_validation_logging = False)
+tiled_dataset = dataset_tiler(dataset, temp_dir, 2000)
 
-    #result_grid = model.tune(data=data_path, epochs=50, use_ray=True, imgsz=1024, project=save_dir, name=name)
-    results = model.train(data=data_path, epochs=100, imgsz=1024, project=save_dir, name=name)
-    model.val()
+k_fold_cross_validation(tiled_dataset, export_dir)
 
-    wandb.finish()
+print("stop")
+
+
