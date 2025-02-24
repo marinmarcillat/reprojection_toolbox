@@ -1,4 +1,5 @@
 from pathlib import Path
+from ultralytics import YOLO
 import yaml
 import pandas as pd
 from object_detection.fifty_one_utils import get_classes, make_yolo_row
@@ -89,5 +90,16 @@ def k_fold_cross_validation(dataset, export_dir, ksplit = 5):
                     f.write(make_yolo_row(detection, classes_dict[detection.label]) + "\n")
 
     return ds_yamls
+
+def kfcv_training(ds_yamls, model_path, project_dir, **args):
+    results = {}
+
+    print(f"Training models, {len(ds_yamls)} models to train")
+    for k, dataset_yaml in tqdm(enumerate(ds_yamls)):
+        model = YOLO(model_path, task="detect")
+        model.train(data=dataset_yaml, **args)  # include any train arguments
+        results[k] = model.metrics  # save output metrics for further analysis
+
+    return results
 
 

@@ -253,6 +253,7 @@ def export_yoloV5_format(dataset, export_dir, classes,  label_field = "detection
             split=split,
             classes=classes,
         )
+    return export_dir
 
 def fo_to_csv(dataset):
     results = []
