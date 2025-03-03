@@ -91,7 +91,7 @@ def k_fold_cross_validation(dataset, export_dir, ksplit = 5):
 
     return ds_yamls
 
-def kfcv_training(ds_yamls, model_path, project_dir, **args):
+def kfcv_training(ds_yamls, model_path, **args):
     results = {}
 
     print(f"Training models, {len(ds_yamls)} models to train")

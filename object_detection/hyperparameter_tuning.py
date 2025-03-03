@@ -7,7 +7,10 @@ import ray
 from ray import tune
 from ray.air import RunConfig
 from ray.tune.schedulers import ASHAScheduler
-
+from ray.tune.search.bayesopt import BayesOptSearch
+import numpy as np
+import json
+import yaml
 
 
 
@@ -19,7 +22,7 @@ import subprocess
 
 
 def run_ray_tune(
-    model, data, tune_dir, grace_period: int = 10, max_samples: int = 10, **train_args
+    model, data, tune_dir, grace_period: int = 5, max_samples: int = 50, **train_args
 ):
 
     space = {
@@ -64,6 +67,10 @@ def run_ray_tune(
         model_to_train = ray.get(model_in_store)  # get the model from ray store for tuning
         model_to_train.reset_callbacks()
         config.update(train_args)
+
+        # Convert numpy.float64 to float
+        config = {k: float(v) if isinstance(v, np.float64) else v for k, v in config.items()}
+
         results = model_to_train.train(**config)
         return results.results_dict
 
@@ -78,14 +85,12 @@ def run_ray_tune(
     # Define the ASHA scheduler for hyperparameter search
     asha_scheduler = ASHAScheduler(
         time_attr="epoch",
-        metric=TASK2METRIC[task],
-        mode="max",
         max_t=train_args.get("epochs") or 100,
         grace_period=grace_period,
         reduction_factor=3,
     )
 
-    # Define the callbacks for the hyperparameter search
+    algo = BayesOptSearch(random_search_steps=4)
 
     # Create the Ray Tune hyperparameter search tuner
     tune_dir = Path(tune_dir)  # must be absolute dir
@@ -93,7 +98,7 @@ def run_ray_tune(
     tuner = tune.Tuner(
         trainable_with_resources,
         param_space=space,
-        tune_config=tune.TuneConfig(scheduler=asha_scheduler, num_samples=max_samples, trial_dirname_creator=short_dirname),
+        tune_config=tune.TuneConfig(metric=TASK2METRIC[task], mode="max", search_alg=algo,scheduler=asha_scheduler, num_samples=max_samples, trial_dirname_creator=short_dirname),
         run_config=RunConfig(callbacks=[], storage_path=tune_dir),
     )
 
@@ -103,15 +108,37 @@ def run_ray_tune(
     # Return the results of the hyperparameter search
     return tuner.get_results()
 
+def json2yaml(json_path, yaml_path):
+    """
+    Convert a JSON file to a YAML file.
+
+    Args:
+        json_path (str): The path to the JSON file.
+        yaml_path (str): The path to save the YAML file.
+
+    Returns:
+        None
+    """
+    with open(json_path, "r") as json_file:
+        data = json.load(json_file)
+
+    with open(yaml_path, "w") as yaml_file:
+        yaml.dump(data, yaml_file)
 
 
 if __name__ == "__main__":
-    data_path = r"D:\tests\model_unbalanced\data\2025-02-24_5-Fold_Cross-val\split_1\split_1_dataset.yaml"
+    data_path = r"D:\model_training\trained_models\associated_species_yolov11_PC\dataset_luisa_vol334_612img\yolo_training_dataset\dataset.yaml"
     model_path = r"D:\model_training\untrained_models\yolo11l.pt"
+    export_path = r"D:\model_training\trained_models\associated_species_yolov11_PC\dataset_luisa_vol334_612img\model"
+    hyperparameters_path = r"D:\model_training\trained_models\associated_species_yolov11_PC\fine_tune_best.json"
+    hyperparameters_yaml_path = r"D:\model_training\trained_models\associated_species_yolov11_PC\fine_tune_best.yaml"
+
+    json2yaml(hyperparameters_path, hyperparameters_yaml_path)
 
     build.YOLODataset = YOLOWeightedDataset
     model = YOLO(model_path)
 
-    results = run_ray_tune(model, data_path, tune_dir = r"D:\tests\model_unbalanced\tune_dir", epochs = 50, batch = 0.95, imgsz = 1024)
 
-    print(results)
+    results = run_ray_tune(model, data_path, tune_dir = export_path, epochs = 50, batch = 0.99, imgsz = 1024, patience = 10)
+
+    #print(results)

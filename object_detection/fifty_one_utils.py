@@ -1,7 +1,6 @@
 import fiftyone as fo
 import fiftyone.utils.random as four
-import random
-import string
+from datetime import datetime
 from PIL import Image
 import os
 import pandas as pd
@@ -19,8 +18,6 @@ def make_yolo_row(label, target):
     return "%d %f %f %f %f" % (target, xc, yc, w, h)
 
 def get_classes(dataset, field = "detections"):
-    if dataset.default_classes:
-        return dataset.default_classes
     label_list = []
     for sample in dataset.head(1000):
         if sample.detections is not None:
@@ -196,7 +193,12 @@ def fo_annotation_to_biigle(detection: fo.Detection, img_w, img_h):
     return [x1, y1, x1 + w, y1,x1 + w, y1 + h, x1, y1 + h]
 
 def generate_rd_suffix(name): # Generate random name
-    return name + ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+    return name + ''.join("_{:%m_%d_%Y_%f}".format(datetime.now()))
+
+def delete_all_datasets():
+    for ds in fo.list_datasets():
+        dataset = fo.load_dataset(ds)
+        dataset.delete()
 
 def import_coco_format(dataset_dir, name):
     name = generate_rd_suffix(name)
@@ -239,6 +241,7 @@ def import_yolov5_format(dataset_dir, splits=None, label_field="detections"):
     return dataset
 
 def export_yoloV5_format(dataset, export_dir, classes,  label_field = "detections", train_split = 0.9):
+    export_dir = str(export_dir)
     four.random_split(
         dataset,
         {"train": train_split, "val": 1-train_split}
@@ -253,7 +256,7 @@ def export_yoloV5_format(dataset, export_dir, classes,  label_field = "detection
             split=split,
             classes=classes,
         )
-    return export_dir
+    return os.path.join(export_dir, "dataset.yaml")
 
 def fo_to_csv(dataset):
     results = []
