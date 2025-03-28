@@ -1,6 +1,4 @@
 from ifdo import iFDO
-from ifdo.models import ImageSetHeader
-
 
 import fiftyone.utils.data as foud
 import fiftyone.types as fot
