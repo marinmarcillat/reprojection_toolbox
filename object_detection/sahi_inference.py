@@ -24,7 +24,7 @@ def sahi_inference(model_path, dataset, label_field = "detections", slice = 2000
     print("SAHI inference")
     for sample in dataset.iter_samples(progress=True, autosave=True):
         predict_with_slicing(sample, label_field=label_field, detection_model=detection_model , slice_height=slice, slice_width=slice, **kwargs)
-    dataset.default_classes = list(detection_model.model.names.values())
+    dataset.default_classes.extend(list(detection_model.model.names.values()))
     dataset.save()
     return dataset
 

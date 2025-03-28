@@ -12,7 +12,12 @@ import numpy as np
 import json
 import os
 
-def create_ocean_spy_project(image_dir, export_dir, object_detection_model_path, confidence_threshold = 0.50):
+def create_ocean_spy_project(image_dir, export_dir, object_detection_model_path, filtering=None, mapping = None, confidence_threshold = 0.50):
+    if filtering is None:
+        filtering = []
+    if mapping is None:
+        mapping = {}
+
     img_wo_annotations_dir = os.path.join(export_dir, "img_wo_annotations")
     img_w_annotations_dir = os.path.join(export_dir, "img_w_annotations")
     dataset_dir = os.path.join(export_dir, "dataset")
@@ -29,18 +34,29 @@ def create_ocean_spy_project(image_dir, export_dir, object_detection_model_path,
 
     print("Filtering detections")
     dataset.filter_labels("detections", F("confidence") > confidence_threshold)
+    dataset = dataset.filter_labels(
+        "detections", F("label").is_in(filtering)
+    )
+    dataset = dataset.map_labels("detections", mapping)
+    dataset.default_classes = fou.get_classes(dataset)
+    print(f"Default classes: {dataset.default_classes}")
 
     print("Tiling dataset")
     dataset = spliter.dataset_tiler(dataset, img_wo_annotations_dir, 2000)
 
-    color_palette = [(27,158,119,180),
-                     (217,95,2,180),
-                     (117,112,179,180),
-                     (231,41,138,180),
-                     (102,166,30,180),
-                     (230,171,2,180),
-                     (158,114,32,180),
-                     (102,102,102,180)]  # Dark2 palette, color-blind friendly
+    transparency = 180
+    color_palette = [
+        (228, 26, 28,transparency),
+        (55, 126, 184,transparency),
+        (77, 175, 74,transparency),
+        (152, 78, 163,transparency),
+        (255, 127, 0,transparency),
+        (255, 255, 51,transparency),
+        (166, 86, 40,transparency),
+        (247, 129, 191,transparency),
+        (153, 153, 153,transparency)
+    ] # Set2 palette, color-blind friendly
+
     color_dict = {
         label: color_palette[id]
         for id, label in enumerate(dataset.default_classes)
@@ -85,11 +101,29 @@ def create_ocean_spy_project(image_dir, export_dir, object_detection_model_path,
     return dataset
 
 if __name__ == '__main__':
-    image_dir = r"F:\marin\chereef_CG_2023\images"
-    export_dir = r"F:\marin\chereef_CG_2023\ocean_spy_project"
-    object_detection_model_path = r"D:\model_training\trained_models\coco_multilabel_yolov11l_datarmor\train_yolo11l_100e_2000imgsz_datarmor\weights\best.pt"
+    image_dir = r"D:\chereef_CG_2023\images"
+    export_dir = r"D:\chereef_CG_2023\ocean_spy_project"
+    object_detection_model_path = r"D:\model_training\trained_models\associated_species_yolov11_PC\train\weights\best.pt"
+    filtering =[
+        "Sabellidae",
+        "SM396 Cidaris cidaris",
+        "SM60 Actiniaria msp41",
+        "Squat lobsters",
+        "SM235 Bathynectes longispina",
+        "Anemones and anemone-like",
+        "Antipathidae",
+        "SM631 Trochoidea  msp2"
+    ]
+    mapping = {
+        "SM396 Cidaris cidaris": "Cidaris cidaris",
+        "SM631 Trochoidea  msp2": "Trochoidea  msp2",
+        "SM60 Actiniaria msp41": "Anémone msp41",
+        "Squat lobsters": "Galathées",
+        "SM235 Bathynectes longispina": "Bathynectes longispina",
+        "Anemones and anemone-like": "Anémones",
+    }
 
-    dataset = create_ocean_spy_project(image_dir, export_dir, object_detection_model_path)
+    dataset = create_ocean_spy_project(image_dir, export_dir, object_detection_model_path, filtering=filtering, mapping = mapping)
 
     session = fo.launch_app(dataset)
     session.show()

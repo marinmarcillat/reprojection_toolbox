@@ -7,8 +7,8 @@ Reprojection toolbox for Metashape
 Run the following command in Miniforge:
 
 ```bash
-    mamba create -y -n reprojection_env -c conda-forge -c pytorch -c nvidia python=3.11 pyvista ultralytics pytorch torchvision torchaudio pytorch-cuda=11.8 tqdm pandas geopandas sqlalchemy scipy jupyterlab fiftyone sahi ipyfilechooser shapely pillow wandb treelib pyqt python-dotenv "ray-tune" 
-    pip install bayesian-optimization==1.4.3
+    mamba create -y -n reprojection_env -c conda-forge -c pytorch -c nvidia python=3.11 pyvista ultralytics pytorch torchvision torchaudio pytorch-cuda=11.8 tqdm pandas geopandas sqlalchemy scipy jupyterlab fiftyone sahi ipyfilechooser shapely pillow wandb treelib pyqt python-dotenv exrex "ray-tune" 
+    pip install bayesian-optimization==1.4.3, ifdo
     conda activate reprojection_env
 ```
 

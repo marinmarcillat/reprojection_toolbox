@@ -19,7 +19,7 @@ def make_yolo_row(label, target):
 
 def get_classes(dataset, field = "detections"):
     label_list = []
-    for sample in dataset.head(1000):
+    for sample in dataset:
         if sample.detections is not None:
             label_list.extend(detect.label for detect in sample[field].detections)
     return list(set(label_list))
@@ -32,7 +32,7 @@ def relative_to_absolute(bbox, w, h):
     y2 = int((y + height) * h)
     return [x1, y1, x1, y2, x2, y2, x2, y1]
 
-def annotation_to_biigle(dataset):
+def fo_to_biigle(dataset, label_tree : dict):
     ann_dict = {}
     for sample in dataset:
         image_path = sample.filepath
@@ -48,15 +48,17 @@ def annotation_to_biigle(dataset):
             bbox = detection.bounding_box
             bbox = relative_to_absolute(bbox, w, h)
             label = detection.label
+            label_id = label_tree[label]
             annotations.append({"shape_id": 5,
                                "points": bbox,
-                                "label":label})
+                                "label":label,
+                                "label_id": label_id})
         ann_dict[image_path] = annotations
     return ann_dict
 
-def export_to_biigle(dataset, biigle_dir, image_volume, copy = True, const_label_id = 6665):
+def export_to_biigle(dataset, biigle_dir, image_volume, label_tree, copy = True):
 
-    ann_dict = annotation_to_biigle(dataset)
+    ann_dict = fo_to_biigle(dataset, label_tree)
     for img_path in ann_dict.keys():
         img_filename = os.path.basename(img_path)
         if not os.path.exists(os.path.join(biigle_dir, img_filename)):
@@ -67,12 +69,9 @@ def export_to_biigle(dataset, biigle_dir, image_volume, copy = True, const_label
             else:
                 print(f"Skipping {img_filename}")
                 continue
-        else:
-            continue
-
 
         image_id = [image.image_id for image in image_volume.image if image.filename == img_filename]
-        if len(image_id) == 0:
+        if not image_id:
             print(f"Image {img_filename} not found in Biigle, adding it")
             if os.path.exists(os.path.join(biigle_dir, img_filename)):
                 resp = image_volume.add_image([img_filename])
@@ -84,7 +83,7 @@ def export_to_biigle(dataset, biigle_dir, image_volume, copy = True, const_label
             image_id = image_id[0]
 
         image = [image for image in image_volume.image if image.image_id == image_id][0]
-        ann_list = [biigle_utils.ImageAnnotation(0, image, ann["points"], ann["label"], const_label_id, ann["shape_id"])
+        ann_list = [biigle_utils.ImageAnnotation(0, image, ann["points"], ann["label"], ann["label_id"], ann["shape_id"])
                     for ann in ann_dict[img_path]]
         image.add_annotation(ann_list)
         print(f"Exported {img_filename} to Biigle")
@@ -183,6 +182,50 @@ def import_video_csv_report(report_file, video_dir, export_dir, w = 1920, h = 10
 
                 samples.append(sample)
     return samples
+
+def import_video_volume_api(api, volume_id, video_dir, export_dir, w = 1920, h = 1080, frame_rate = 25):
+    samples = []
+    for video_id in tqdm(api.get(f'volumes/{volume_id}/files').json()):
+        video_annotations = api.get(f'videos/{video_id}/annotations').json()
+        videos_infos = api.get(f'videos/{video_id}').json()
+        video_filename = videos_infos['filename']
+        video_path = os.path.join(video_dir, video_filename)
+
+        unique_frames = list(
+            {frame for ann in video_annotations for frame in ann['frames']}
+        )
+        frames_dict = {x: int(round(x * frame_rate)) for x in unique_frames}
+
+        cap = cv2.VideoCapture(video_path)
+        for frame_s, frame_nb in frames_dict.items():
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_nb)
+            ret, frame = cap.read()
+            if frame is None:
+                print(f"Frame {frame_nb} not found in video {video_filename}")
+                continue
+            img_path = os.path.join(export_dir, f"{video_filename}_{frame_nb}.jpg")
+            cv2.imwrite(img_path, frame)
+
+            metadata = fo.ImageMetadata.build_for(img_path)
+
+            sample = fo.Sample(filepath=img_path, metadata=metadata)
+            frame_annotations = [ann for ann in video_annotations if frame_s in ann['frames'] and ann['shape_id'] != 7]
+            frame_annotations = [[row["points"][0], row['labels'][0]['label']['name']] for row in frame_annotations]
+            pd_frame_annotations = pd.DataFrame(frame_annotations, columns = ["points", "label_name"])
+
+            detections = append_detections(pd_frame_annotations, w, h)
+
+
+            # Store object detections
+            sample["detections"] = fo.Detections(detections=detections)
+
+            samples.append(sample)
+
+    return samples
+
+
+        
+
 
 def fo_annotation_to_biigle(detection: fo.Detection, img_w, img_h):
     bb = detection.bounding_box

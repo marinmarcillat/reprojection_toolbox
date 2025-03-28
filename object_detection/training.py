@@ -9,7 +9,7 @@ from pathlib import Path
 from fiftyone import ViewField as F
 
 def training_pipeline(dataset, model_path, project_dir, project_name = "project", mapping=None, filtering = None, tiled_image_splitter = True,
-                      cross_validation = True, weighted_data_loader = True, hyperparameter_tuning = False, training_config = None):
+                      cross_validation = True, weighted_data_loader = True, hyperparameter_tuning = False, training_config = None, training = True):
     if mapping is None:
         mapping = {}
     if training_config is None:
@@ -20,7 +20,7 @@ def training_pipeline(dataset, model_path, project_dir, project_name = "project"
     ds = dataset.clone()
 
     project_dir = Path(project_dir)
-    training_ds_export_dir = project_dir / "yolo_training_dataset"
+    training_ds_export_dir = project_dir / f"yolo_training_dataset_{project_name}"
     temp_dir = project_dir / "temp"
     training_ds_export_dir.mkdir(parents=True, exist_ok=True)
     temp_dir.mkdir(parents=True, exist_ok=True)
@@ -49,9 +49,11 @@ def training_pipeline(dataset, model_path, project_dir, project_name = "project"
     else:
         ds_yamls = [export_yoloV5_format(ds, training_ds_export_dir, list(ds.default_classes))]
 
+    if not training:
+        return ds
+
     if weighted_data_loader:
         build.YOLODataset = YOLOWeightedDataset
-
 
     if cross_validation and not hyperparameter_tuning:
         return kfcv_training(ds_yamls, model_path, **training_config)
@@ -72,6 +74,8 @@ if __name__ == "__main__":
 
     scenarios = [
         {
+            "training": False,
+
             "weighted_data_loader": True,
             "tiled_image_splitter": True,
             "cross_validation": False,
@@ -79,12 +83,10 @@ if __name__ == "__main__":
 
             "project_dir": r"D:\model_training\trained_models\associated_species_yolov11_PC\dataset_luisa_vol334_612img",
             "model_path": r"D:\model_training\untrained_models\yolo11l.pt",
-            "project_name": "Associated_species",
+            "project_name": "latest",
             "filtering": ["Sabellidae",
                           "SM235 Bathynectes longispina",
                           "Squat lobsters",
-                          "Bryozoa",
-                          "Tunicata",
                           "Anemones and anemone-like",
                           "SM56 Halcampoides msp1",
                           "SM92 Actiniaria msp1",
@@ -93,9 +95,8 @@ if __name__ == "__main__":
                           "SM130 Stichopathes cf. gravieri",
                           "SM144 Antipathes cf. dichotoma",
                           "Stichopathes sp. (undefined)",
-                          "Parantipathes sp. (undefined)",
                           "SM396 Cidaris cidaris",
-                          "SM631 Trochoidea msp2",
+                          "SM631 Trochoidea  msp2",
                           "Crust-like"],
             "mapping": {
                 "SM56 Halcampoides msp1": "Anemones and anemone-like",
@@ -105,7 +106,6 @@ if __name__ == "__main__":
                 "Stichopathes sp. (undefined)": "Antipathidae",
             },
             "training_config": {
-                "cfg": r"D:\model_training\trained_models\associated_species_yolov11_PC\fine_tune_best.yaml",
                 "imgsz": 1024,
                 "batch": 0.99,
                 "epochs": 100,

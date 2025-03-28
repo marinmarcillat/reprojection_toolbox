@@ -83,7 +83,7 @@ def download_image(api, volume, label, path):
     return 1
 
 
-def get_tree(lt):
+def get_tree(lt, animalia_only = True):
     tree = Tree()
     tree.create_node("Root", "root")
     while len(lt) > 0:
@@ -97,8 +97,10 @@ def get_tree(lt):
                     lt.remove(l)
                     if l["name"] == "Animalia":
                         animalia_id = l["id"]
-
-    return tree.subtree(animalia_id)
+    if animalia_only:
+        return tree.subtree(animalia_id)
+    else:
+        return tree
 
 
 
