@@ -95,7 +95,6 @@ def get_status(qt):
     if len(os.listdir(overlapping_images_dir)) != 0:
         qt.overlappingImageDir.setText(overlapping_images_dir)
         qt.project_config["overlapping_images"] = True
-        qt.project_config["reprojection_image_directory"] = overlapping_images_dir
 
     db_path = os.path.join(qt.project_config["project_directory"], f"reprojection_{qt.project_config['name']}", "reprojection.db")
     if os.path.exists(db_path):
@@ -119,7 +118,6 @@ def get_status(qt):
         qt.inference.setEnabled(True)
 
     if (qt.project_config.get("annotation_report_path", False)
-            and os.path.exists(qt.project_config["reprojection_image_directory"])
             and qt.project_config.get("lowRes", False)):
         qt.reprojection.setEnabled(True)
 

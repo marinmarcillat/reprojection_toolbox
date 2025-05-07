@@ -77,7 +77,7 @@ class ReprojectionThread(QtCore.QThread):
         session = annotations.annotations_to_individuals(session, self.db_dir)
         self.prog_val.emit(80)
         print("Plotting reprojections on metashape")
-        mu.plot_all_annotations(session, cameras_reprojectors, self.chunk, self.gui.project_config['name'], pointify = True, confidence_threshold = 0.5)
+        mu.plot_all_annotations(session, cameras_reprojectors, self.chunk, self.gui.project_config['name'], pointify = self.gui.pointify.isChecked(), confidence_threshold = 0.5)
         print("Reprojection finished")
         self.prog_val.emit(100)
 

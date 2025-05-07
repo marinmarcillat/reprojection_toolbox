@@ -8,8 +8,7 @@ project_template = {
     "metashape_project_path": "",
 
     'inference_model_path': '',
-    'annotation_report_path': '',
-    "reprojection_image_directory": "",
+    'annotation_report_path': ''
 }
 
 

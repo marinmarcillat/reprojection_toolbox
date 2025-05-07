@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'main.ui'
+# Form implementation generated from reading ui file 'UI/main.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.9
 #
@@ -171,9 +171,14 @@ class Ui_MainWindow(object):
         self.reprojection.setMaximumSize(QtCore.QSize(100, 16777215))
         self.reprojection.setObjectName("reprojection")
         self.horizontalLayout_7.addWidget(self.reprojection)
+        self.pointify = QtWidgets.QCheckBox(self.centralwidget)
+        self.pointify.setObjectName("pointify")
+        self.horizontalLayout_7.addWidget(self.pointify)
         self.resetCb = QtWidgets.QCheckBox(self.centralwidget)
         self.resetCb.setObjectName("resetCb")
         self.horizontalLayout_7.addWidget(self.resetCb)
+        spacerItem9 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_7.addItem(spacerItem9)
         self.verticalLayout.addLayout(self.horizontalLayout_7)
         self.progressBar = QtWidgets.QProgressBar(self.centralwidget)
         self.progressBar.setProperty("value", 0)
@@ -233,6 +238,7 @@ class Ui_MainWindow(object):
         self.overlapping.setText(_translate("MainWindow", "Get overlapping images"))
         self.inference.setText(_translate("MainWindow", "Inference"))
         self.reprojection.setText(_translate("MainWindow", "Reprojection"))
+        self.pointify.setText(_translate("MainWindow", "Points ?"))
         self.resetCb.setText(_translate("MainWindow", "Reset database"))
         self.menuNew.setTitle(_translate("MainWindow", "File"))
         self.menuadvanced.setTitle(_translate("MainWindow", "Advanced"))
