@@ -58,12 +58,21 @@ class ReprojectionThread(QtCore.QThread):
             self.prog_val.emit(20)
 
             print("Creating DB and adding annotations and reprojections")
-            inference_report = pd.read_csv(self.gui.project_config["annotation_report_path"])
-            try:
-                inference_report = inference_report[["filename", "label_name", "confidence", "points"]]
-            except KeyError:
-                print("Detected biigle format, adding confidence column")
-                inference_report = inference_report[["filename", "label_name", "points"]].assign(confidence=1)
+            if self.gui.project_config.get("annotation_report_path", False):
+                inference_report = pd.read_csv(self.gui.project_config["annotation_report_path"])
+                try:
+                    inference_report = inference_report[["filename", "label_name", "confidence", "points"]]
+                except KeyError:
+                    print("Detected biigle format, adding confidence column")
+                    inference_report = inference_report[["filename", "label_name", "points"]].assign(confidence=1)
+
+                if self.gui.img_labels_cb.isChecked():
+                    img_label = cu.chunk_to_img_labels(self.chunk)
+                    inference_report = pd.concat([inference_report, img_label], axis=0)
+                    inference_report.index = pd.RangeIndex(len(inference_report.index))
+            else:
+                inference_report = cu.chunk_to_img_labels(self.chunk)
+
             session = annotations.inference_report_to_reprojection_database(self.db_dir, inference_report,
                                                                                  cameras_reprojectors, tie_points)
 

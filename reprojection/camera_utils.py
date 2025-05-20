@@ -2,6 +2,8 @@ import reprojection.reprojection as reprojection
 from reprojection.reprojection_database import Camera
 import reprojection.metashape_utils as mu
 from tqdm import tqdm
+from reprojection.geometry import rectangle_to_polygons
+import pandas as pd
 import os
 
 def camera_reprojector_to_db(session, camera):
@@ -35,4 +37,14 @@ def chunk_to_camera_reprojector(chunk, db_dir):
         )
         for camera in tqdm(meta_cameras)
     ]
+
+def chunk_to_img_labels(chunk):
+    cameras = [[os.path.basename(camera.photo.path), int(camera.photo.meta["File/ImageWidth"]), int(camera.photo.meta["File/ImageHeight"])] for camera in chunk.cameras if camera.transform]
+    camera_pd = pd.DataFrame(cameras, columns=["filename", "width", "height"])
+    camera_pd["points"] = camera_pd.apply(lambda x: rectangle_to_polygons([[0,0],[x.width, 0], [x.width, x.height],[0, x.height]]), axis=1)
+    camera_pd["points"] = camera_pd["points"].apply(lambda x: [z for y in x for z in y])
+    camera_pd["label_name"] = camera_pd["filename"]
+    camera_pd["confidence"] = 1
+    return camera_pd[["filename", "label_name", "confidence", "points"]]
+
 

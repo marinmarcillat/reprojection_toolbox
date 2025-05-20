@@ -117,8 +117,7 @@ def get_status(qt):
             and os.path.exists(qt.project_config["inference_model_path"])):
         qt.inference.setEnabled(True)
 
-    if (qt.project_config.get("annotation_report_path", False)
-            and qt.project_config.get("lowRes", False)):
+    if  qt.project_config.get("lowRes", False):
         qt.reprojection.setEnabled(True)
 
 

@@ -415,6 +415,13 @@
        </widget>
       </item>
       <item>
+       <widget class="QCheckBox" name="img_labels_cb">
+        <property name="text">
+         <string>Images as labels ?</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QCheckBox" name="pointify">
         <property name="text">
          <string>Points ?</string>

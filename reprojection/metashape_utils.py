@@ -102,7 +102,7 @@ def plot_all_annotations(session, cameras_reprojectors, chunk, group_label, poin
                     else:
                         camera = session.query(rdb.Camera).filter_by(name=annotation.camera_name).first()
                         camera_reproj = reprojection.get_camera(camera.name, cameras_reprojectors)
-                        camera_reproj.plot_polygon3D(poly_3d, f"{individual.id}_{annotation.id}")
+                        camera_reproj.plot_polygon3D(poly_3d, f"{annotation.label}_id{individual.id}")
         if pointify:
             if not poly_3d_list:
                 continue

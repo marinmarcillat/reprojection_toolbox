@@ -140,8 +140,11 @@ class Window(QMainWindow, Ui_MainWindow):
         if not os.path.exists(db_dir):
             os.makedirs(db_dir)
 
-        if self.get_meta_chunk() is None:
+        if self.get_meta_chunk() is None :
             return None
+
+        if not self.img_labels_cb.isChecked() and  not self.project_config.get("annotation_report_path", False):
+            print("No annotation report available. Abort")
 
         reprojection_thread = reprojection_launcher.ReprojectionThread(self, self.chunk, db_dir)
         reprojection_thread.prog_val.connect(self.set_prog)

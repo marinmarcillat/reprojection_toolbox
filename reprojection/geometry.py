@@ -182,9 +182,9 @@ def filter_tie_points(polygon_3d, reproj_camera, tie_points):
 
     reprojection_plane_normal, reprojection_plane_center = fit_plane(polygon_3d)
     flatten_polygon = project_points_to_plane(polygon_3d, reprojection_plane_center, reprojection_plane_normal)
-    base_vert = [len(flatten_polygon)] + list(range(len(flatten_polygon)))
-    pv_flatten_polygon = pv.PolyData(flatten_polygon, base_vert)
-    #pv_flatten_polygon = base_data.delaunay_2d(edge_source=base_data)
+    #base_vert = [len(flatten_polygon)] + list(range(len(flatten_polygon)))
+    #pv_flatten_polygon = pv.PolyData(flatten_polygon, base_vert)
+    pv_flatten_polygon = pv.PolyData(flatten_polygon).delaunay_2d()
     reprojection_plane = pv.Plane(center=reprojection_plane_center, direction=reprojection_plane_normal, i_size=10,
                                   j_size=10)
 
@@ -199,17 +199,24 @@ def filter_tie_points(polygon_3d, reproj_camera, tie_points):
     if np.dot(reprojection_plane_normal, (camera_center - reprojection_plane_center)) > 0:
         reprojection_plane_normal = -reprojection_plane_normal
 
+    #.triangulate()
+    extruded_cam_cylinder = pv_flatten_polygon.extrude_trim(camera_direction, camera_plane)
+    extruded_safety_cylinder = pv_flatten_polygon.extrude_trim(-reprojection_plane_normal, reprojection_plane.translate(reprojection_plane_normal*0.5))
 
-    extruded_cam_cylinder = pv_flatten_polygon.extrude_trim(camera_direction, camera_plane).triangulate()
-    extruded_safety_cylinder = pv_flatten_polygon.extrude_trim(-reprojection_plane_normal, reprojection_plane.translate(reprojection_plane_normal*0.2)).triangulate()
+    if extruded_cam_cylinder.extract_feature_edges(feature_edges=False, manifold_edges=False).n_cells != 0:
+        extruded_cam_cylinder = extruded_cam_cylinder.fill_holes(1000).clean(tolerance=0.01).clean(tolerance=0.1)
+
+    if extruded_safety_cylinder.extract_feature_edges(feature_edges=False, manifold_edges=False).n_cells != 0:
+        extruded_safety_cylinder = extruded_safety_cylinder.fill_holes(1000).clean(tolerance=0.01).clean(tolerance=0.1)
 
 
-    selected_1 = tie_points.select_enclosed_points(extruded_cam_cylinder, tolerance=0.01,)
+    #, check_surface=False
+    selected_1 = tie_points.select_enclosed_points(extruded_cam_cylinder, tolerance=0.01)
     pts_1 = tie_points.extract_points(
         selected_1['SelectedPoints'].view(bool),
         adjacent_cells=False,
     )
-    selected_2 = tie_points.select_enclosed_points(extruded_safety_cylinder, tolerance=0.01,)
+    selected_2 = tie_points.select_enclosed_points(extruded_safety_cylinder, tolerance=0.01)
     pts_2 = tie_points.extract_points(
         selected_2['SelectedPoints'].view(bool),
         adjacent_cells=False,
