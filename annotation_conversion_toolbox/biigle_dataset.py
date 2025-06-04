@@ -180,9 +180,12 @@ class BiigleDatasetExporter(foud.LabeledImageDatasetExporter, foud.ExportPathsMi
         for annotation in self._annotations:
             image_id = self._volume_img_dict[annotation["image"]]
             del annotation["image"]
-            annotation["image_id"] = image_id
+            annotation["image_id"] = int(image_id)
 
-        self.api.post('image-annotations', json=self._annotations)
+        chunks =  [self._annotations[i:i + 99] for i in range(0, len(self._annotations), 99)]
+
+        for chunk in chunks:
+            self.api.post('image-annotations', json=chunk)
 
 
     def _parse_classes(self):

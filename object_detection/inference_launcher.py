@@ -74,3 +74,38 @@ class InferenceThread(QtCore.QThread):
 
         self.finished.emit()
         self.running = False
+
+if __name__ == "__main__":
+    import fiftyone as fo
+    from Biigle.biigle import Api
+    from annotation_conversion_toolbox.biigle_dataset import BiigleDatasetExporter
+
+    api = Api()
+
+    volume_id = 334
+    label_tree_id = 60
+    biigle_image_dir = r"Z:\images\test_reprojection_marinm\deep_learning_AS"
+
+    model_path = r"D:\tests\inference\best.pt"
+    model = YOLO(model_path)
+    img_sz = model.model.args['imgsz']
+
+
+    dataset = fou.import_image_directory(r"D:\tests\inference\raw", "addition_coral")
+    dataset.compute_metadata()
+    first_img_size = [dataset.first()["metadata"]["width"], dataset.first()["metadata"]["height"]]
+
+    if first_img_size[0] > 2 * img_sz and first_img_size[1] > 2 * img_sz:
+        print("Image size is 2x larger than the model input size, going with SAHI")
+        dataset_inf = sahi.sahi_inference(model_path, dataset, slice=img_sz)
+    else:
+        print("Image size is smaller than 2x the model input size, going with classic YOLO inference")
+        dataset_inf = inference.YOLO_inference(dataset, model_path)
+
+
+
+    exporter = BiigleDatasetExporter(api=api, volume_id=volume_id, label_tree_id=label_tree_id, biigle_image_dir=biigle_image_dir)
+    dataset_inf.export(dataset_exporter=exporter)
+
+    session = fo.launch_app(dataset_inf)
+    session.wait()
