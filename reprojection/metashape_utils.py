@@ -28,8 +28,11 @@ def add_images(chunk, image_dir):
 def get_sparse_model(chunk):
     models = chunk.models
     for model in models:
-        if int(model.meta['BuildModel/source_data']) == 0:
-            return model
+        try:
+            if int(model.meta['BuildModel/source_data']) == 0:
+                return model
+        except TypeError: # old version models
+            continue
     print("No sparse model found, creating one...")
     chunk.buildModel(source_data=Metashape.DataSource.TiePointsData)
     return chunk.models[-1]

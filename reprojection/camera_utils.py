@@ -31,12 +31,17 @@ def chunk_to_camera_reprojector(chunk, db_dir):
 
     print("get camera reprojectors")
     meta_cameras = [camera for camera in chunk.cameras if camera.transform]
-    return [
-        reprojection.CameraReprojector(
-            camera, chunk, model, cph_dir
-        )
-        for camera in tqdm(meta_cameras)
-    ]
+    camera_list = []
+    for camera in tqdm(meta_cameras):
+        try:
+            r = reprojection.CameraReprojector(
+                camera, chunk, model, cph_dir
+            )
+        except Exception as e:
+            print(e)
+            continue
+        camera_list.append(r)
+    return camera_list
 
 def chunk_to_img_labels(chunk):
     cameras = [[os.path.basename(camera.photo.path), int(camera.photo.meta["File/ImageWidth"]), int(camera.photo.meta["File/ImageHeight"])] for camera in chunk.cameras if camera.transform]

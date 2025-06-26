@@ -3,12 +3,17 @@ from Biigle.biigle import Api
 
 api = Api()
 
-volume_id =  91
-lt_id = 78
+volume_id =  352
+lt_id = 60
 
-annotations_labels = api.get(f'volumes/{volume_id}/statistics').json()[
+maelle_labels = api.get(f'volumes/{volume_id}/statistics').json()[
     'annotationLabels'
 ]
+
+corentin_labels = api.get(f'volumes/462/statistics').json()[
+    'annotationLabels'
+]
+annotations_labels = maelle_labels + corentin_labels
 
 lt = api.get(f'label-trees/{lt_id}').json()["labels"]
 

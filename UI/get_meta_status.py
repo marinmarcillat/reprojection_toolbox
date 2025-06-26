@@ -23,7 +23,12 @@ def get_meta_status(qt):
     qt.project_config["aligned"] = True
     models = chunk.models
     for model in models:
-        if int(model.meta['BuildModel/source_data']) == 0:
+        data_source = model.meta['BuildModel/source_data']
+        if not data_source:
+            data_source = 1
+        else:
+            data_source = int(data_source)
+        if data_source == 0:
             qt.lowRes.setStyleSheet("QLabel {color : green; font-weight: bold}")
             qt.project_config["lowRes"] = True
         else:

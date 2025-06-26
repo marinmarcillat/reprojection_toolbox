@@ -29,6 +29,8 @@ class CameraReprojector:
 
         if not os.path.exists(self.contour_file):
             self.contour = self.get_contour()
+            if self.contour is None:
+                raise Exception("No contour found")
             self.contour.save(self.contour_file)
         else:
             self.contour = pv.read(self.contour_file)

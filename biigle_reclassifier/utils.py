@@ -63,7 +63,8 @@ def download_largo(api, model, label, dir, video=False, label_name=""):
         print('Fetching', url)
         patch = requests.get(url, stream=True)
         if not patch.ok:
-            raise Exception(f'Failed to fetch {url}')
+            print(f'Failed to fetch {url}')
+            continue
         if label_name != "":
             export_path = f'{dir}/{annotation_id}_{label_name}.jpg'
         else:
