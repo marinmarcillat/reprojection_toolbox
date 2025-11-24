@@ -11,6 +11,8 @@ import cv2
 from shutil import copy2
 import object_detection.biigle_utils as biigle_utils
 
+
+
 def make_yolo_row(label, target):
     xtl, ytl, w, h = label.bounding_box
     xc = xtl + 0.5 * w
@@ -321,4 +323,13 @@ def fo_to_csv(dataset):
 def view_dataset(dataset):
     session = fo.launch_app(dataset)
     session.wait()
+
+if __name__ == "__main__":
+    report_path = r"D:\coral_garden\coral_garden_inference\2022\inference_AS_CG_yolo11_030925.csv"
+    image_dir = r"D:\coral_garden\coral_garden_inference\2022\images"
+    samples = import_image_csv_report(report_path, image_dir)
+    dataset = import_image_directory(image_dir, "inference_AS_CG_yolo11_030925")
+    dataset.add_samples(samples)
+    print(dataset)
+    view_dataset(dataset)
 

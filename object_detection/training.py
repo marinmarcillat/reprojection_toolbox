@@ -1,4 +1,4 @@
-from object_detection.fifty_one_utils import export_yoloV5_format, get_classes, import_image_csv_report, import_image_directory, delete_all_datasets
+from object_detection.fifty_one_utils import export_yoloV5_format, get_classes, view_dataset, import_image_csv_report, import_image_directory, delete_all_datasets
 from object_detection.spliter import dataset_tiler
 import ultralytics.data.build as build
 from object_detection.weightedDataset import YOLOWeightedDataset
@@ -7,9 +7,12 @@ from object_detection.hyperparameter_tuning import run_ray_tune
 from ultralytics import YOLO
 from pathlib import Path
 from fiftyone import ViewField as F
+import shutil
+
+
 
 def training_pipeline(dataset, model_path, project_dir, project_name = "project", mapping=None, filtering = None, tiled_image_splitter = True,
-                      cross_validation = True, weighted_data_loader = True, hyperparameter_tuning = False, training_config = None, training = True):
+                      cross_validation = True, weighted_data_loader = True, hyperparameter_tuning = False, training_config = None, training = True, slice_size = 2000):
     if mapping is None:
         mapping = {}
     if training_config is None:
@@ -42,13 +45,15 @@ def training_pipeline(dataset, model_path, project_dir, project_name = "project"
     ds.save()
 
     if tiled_image_splitter:
-        ds = dataset_tiler(ds, temp_dir, 2000)
+        ds = dataset_tiler(ds, temp_dir, slice_size)
+
 
     if cross_validation and not hyperparameter_tuning:
         ds_yamls = k_fold_cross_validation(ds, training_ds_export_dir)
     else:
         ds_yamls = [export_yoloV5_format(ds, training_ds_export_dir, list(ds.default_classes))]
 
+    #shutil.rmtree(temp_dir)
     if not training:
         return ds
 
@@ -68,9 +73,9 @@ def training_pipeline(dataset, model_path, project_dir, project_name = "project"
 
 if __name__ == "__main__":
 
-    report_path = r"D:\model_training\trained_models\associated_species_yolov11_PC\dataset_luisa_vol334_612img\334-deep-learning-coral-garden-pl814-odis_270225.csv"
-    image_dir = r"Z:\images\chereef_2022\pl814_ODIS"
-    dataset_name = "coral_garden_anemones"
+    report_path = r"D:\model_training\trained_models\AS_CG_yolo11_030925\raw\annotation_report_334_030925.csv"
+    image_dir = r"D:\model_training\trained_models\AS_CG_yolo11_030925\raw\img"
+    dataset_name = "CG_AS"
 
     scenarios = [
         {
@@ -79,11 +84,11 @@ if __name__ == "__main__":
             "weighted_data_loader": True,
             "tiled_image_splitter": True,
             "cross_validation": False,
-            "hyperparameter_tuning": False,
+            "hyperparameter_tuning": True,
 
-            "project_dir": r"D:\model_training\trained_models\associated_species_yolov11_PC\dataset_luisa_vol334_612img",
+            "project_dir": r"D:\model_training\trained_models\AS_CG_yolo11_030925\training_datatset",
             "model_path": r"D:\model_training\untrained_models\yolo11l.pt",
-            "project_name": "latest",
+            "project_name": "AS_CG_yolo11_030925_wo_tunicates_crinoids",
             "filtering": ["Sabellidae",
                           "SM235 Bathynectes longispina",
                           "Squat lobsters",
@@ -97,13 +102,17 @@ if __name__ == "__main__":
                           "Stichopathes sp. (undefined)",
                           "SM396 Cidaris cidaris",
                           "SM631 Trochoidea  msp2",
-                          "Crust-like"],
+                          "Crust-like",
+                          "Primnoidae",
+                          "Paracalyptrophora josephinae or Narella bellisima / pauciflora (indistinguishable)",
+                          "Parantipathes sp. (undefined)"],
             "mapping": {
                 "SM56 Halcampoides msp1": "Anemones and anemone-like",
                 "SM92 Actiniaria msp1": "Anemones and anemone-like",
                 "SM130 Stichopathes cf. gravieri": "Antipathidae",
                 "SM144 Antipathes cf. dichotoma": "Antipathidae",
                 "Stichopathes sp. (undefined)": "Antipathidae",
+                "Paracalyptrophora josephinae or Narella bellisima / pauciflora (indistinguishable)": "Primnoidae"
             },
             "training_config": {
                 "imgsz": 1024,
@@ -126,4 +135,5 @@ if __name__ == "__main__":
     results.extend(
         training_pipeline(dataset, **scenario) for scenario in scenarios
     )
+    view_dataset(results[0])
     print(results)

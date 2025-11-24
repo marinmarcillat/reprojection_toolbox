@@ -8,8 +8,6 @@ import reprojection.metashape_utils as mu
 import reprojection.geometry as geometry
 import pyvista as pv
 
-
-
 class CameraReprojector:
 
     def __init__(self, camera: Metashape.Camera, chunk: Metashape.Chunk, model: Metashape.Model, camera_files_dir):
@@ -71,7 +69,7 @@ class CameraReprojector:
         polygon = np.array([point for point in polygon if point is not None])
         if len(polygon) > 2:
             filtered = geometry.eccentricity_filter(polygon, np.array(self.camera.center))
-            filtered = geometry.sor_filter(filtered)
+            filtered = geometry.sor_filter(filtered, k1= 12, k2=1)
             if len(filtered) > 2:
                 return filtered
 
@@ -176,9 +174,9 @@ def meta_polygon_to_biigle(polygon):
 def get_polygon_and_3d_poly(points, camera: CameraReprojector):
     polygon = np.array(Biigle_polygon_to_polygon(points))
     polygon_3d = np.array(camera.reproject_polygon(polygon))
-    if polygon.shape != () and polygon_3d.shape != ():
-        return polygon, polygon_3d
-    return None, None
+    if polygon_3d.shape != ():
+        return polygon_3d
+    return None
 
 def get_camera(filename, cameras: list[CameraReprojector]):
     for camera in cameras:
@@ -188,11 +186,16 @@ def get_camera(filename, cameras: list[CameraReprojector]):
 
 if __name__ == "__main__":
 
-    report = pd.read_csv(r"D:\Chereef_metashape\2022\Coral Garden\annotations\inference.csv")
+    labs = pd.read_csv(r"D:\model_training\trained_models\all_VW_yolo11_040925\raw\462-cliff-marcos-images_label.csv")
+    firsts = labs[labs["label_name"].isin(["to_train", "annotated"])]
+    data = pd.read_csv(r"D:\model_training\trained_models\all_VW_yolo11_040925\raw\462-cliff-marcos-images.csv")
+    img_list = firsts['image_id'].to_list()
+    report = data[data["image_id"].isin(img_list)]
+
     report['points'] = report.points.apply(lambda x: literal_eval(str(x)))
 
     doc = Metashape.Document()
-    doc.open(r"D:\Chereef_metashape\2022\Coral Garden\coral_garden_22.psx")
+    doc.open(r"F:\these\Chereef_metashape\Combined_model\main.psx")
     chunk = doc.chunk
 
     cameras = [CameraReprojector(chunk, camera) for camera in chunk.cameras if camera.transform]

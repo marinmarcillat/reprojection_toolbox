@@ -1,4 +1,4 @@
-import reprojection.reprojection as reprojection
+import reprojection.reprojection_main as reprojection
 from reprojection.reprojection_database import Camera
 import reprojection.metashape_utils as mu
 from tqdm import tqdm

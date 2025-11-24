@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>583</width>
-    <height>600</height>
+    <width>624</width>
+    <height>580</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -36,12 +36,20 @@
        <widget class="QPushButton" name="reload">
         <property name="maximumSize">
          <size>
-          <width>50</width>
-          <height>16777215</height>
+          <width>30</width>
+          <height>30</height>
          </size>
         </property>
+        <property name="font">
+         <font>
+          <family>Arial Black</family>
+          <pointsize>20</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
+         </font>
+        </property>
         <property name="text">
-         <string>Reload</string>
+         <string>🗘</string>
         </property>
        </widget>
       </item>
@@ -467,7 +475,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>583</width>
+     <width>624</width>
      <height>21</height>
     </rect>
    </property>
@@ -477,6 +485,7 @@
     </property>
     <addaction name="actionNew"/>
     <addaction name="actionOpen"/>
+    <addaction name="actionEdit"/>
    </widget>
    <widget class="QMenu" name="menuadvanced">
     <property name="title">
@@ -501,6 +510,11 @@
   <action name="actionParameters">
    <property name="text">
     <string>Parameters</string>
+   </property>
+  </action>
+  <action name="actionEdit">
+   <property name="text">
+    <string>Edit</string>
    </property>
   </action>
  </widget>

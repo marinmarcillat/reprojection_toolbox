@@ -1,7 +1,7 @@
 import Metashape
 import pyvista as pv
 from shutil import copy2
-import reprojection.reprojection as reprojection
+import reprojection.reprojection_main as reprojection
 import numpy as np
 from tqdm import tqdm
 import reprojection.reprojection_database as rdb
@@ -62,7 +62,16 @@ def get_all_tie_points(chunk, temp_dir):
 
     return tie_points
 
-
+def get_smallest_pc(chunk):
+    pcs = chunk.point_clouds
+    if len(pcs) == 1:
+        key = pcs[0].key
+    elif len(pcs) > 1:
+        smallest_pc = min(pcs, key=lambda pc: pc.point_count)
+        key = smallest_pc.key
+    else:
+        raise Exception("No point cloud found")
+    return key
 
 def get_cameras_tie_points(chunk, cameras: list):
     point_cloud = chunk.tie_points

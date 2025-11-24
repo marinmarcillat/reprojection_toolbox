@@ -29,14 +29,14 @@ def sahi_inference(model_path, dataset, label_field = "detections", slice = 2000
     return dataset
 
 if __name__ == '__main__':
-    model_path = r"D:\model_training\trained_models\coco_multilabel_yolov11l_datarmor\sliced_yolo_training\best.pt"
-    dataset_dir = r"D:\model_training\trained_models\coco_multilabel_yolov11l_datarmor\coco_less_labels"
+    model_path = r"D:\model_training\trained_models\AS_CG_yolo11_030925\train\weights\best.pt"
+    image_dir = r"D:\coral_garden\coral_garden_inference\2022\images"
 
-    dataset = fou.import_yolov5_format(dataset_dir, label_field = "ground_truth")
+    dataset = fou.import_image_directory(image_dir, "coral_garden_2022_inference")
 
     dataset_inf = sahi_inference(model_path, dataset)
 
     result = fou.fo_to_csv(dataset_inf)
 
-    pd.DataFrame(result).to_csv(r"D:\chereef_marin\chereef23\annotations\inference_multilabel_SAHI.csv", index = False)
+    pd.DataFrame(result).to_csv(r"D:\coral_garden\coral_garden_inference\2022\inference_AS_CG_yolo11_030925.csv", index = False)
 

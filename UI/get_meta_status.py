@@ -1,8 +1,7 @@
 import Metashape
 
 
-def get_meta_status(qt):
-    chunk_id = int(qt.metaChunk.currentIndex())
+def get_meta_status(qt, chunk_id = 0):
 
     doc = Metashape.Document()
     doc.open(qt.project_config["metashape_project_path"])
@@ -13,6 +12,8 @@ def get_meta_status(qt):
 
     for c in doc.chunks:
         qt.metaChunk.addItem(c.label)
+
+    qt.metaChunk.setCurrentIndex(chunk_id)
 
     chunk = doc.chunk if len(doc.chunks) == 1 else doc.chunks[chunk_id]
     if chunk.tie_points is None:

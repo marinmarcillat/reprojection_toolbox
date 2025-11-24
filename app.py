@@ -1,6 +1,6 @@
 import os.path
 import sys
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QFileDialog)
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QFileDialog, QDialog, QInputDialog)
 from PyQt5 import QtCore, QtGui
 import logging
 import Metashape
@@ -12,12 +12,7 @@ import UI.ui_functions as ui_functions
 import contextlib
 from reconstruction import reconstruct
 from reprojection import metashape_utils as mu
-from object_detection import fifty_one_utils as fou
-from object_detection import sahi_inference as sahi
 from object_detection import inference_launcher
-from reprojection import camera_utils as cu
-from reprojection import annotations
-from reprojection import reprojection_database as rdb
 from reprojection import reprojection_launcher
 
 
@@ -62,9 +57,6 @@ class Window(QMainWindow, Ui_MainWindow):
         self.inference.clicked.connect(self.launch_inference)
         self.reprojection.clicked.connect(self.launch_reprojection)
 
-    def new_project(self):
-        print("create new project (not yet implemented)")
-
     def open_project(self):
         options = QFileDialog.Options()
         file_path = QFileDialog.getOpenFileName(self, "Open project file", "", "*.rpj", options=options)
@@ -72,6 +64,22 @@ class Window(QMainWindow, Ui_MainWindow):
         self.project_config_path = file_path[0]
         self.log_path = os.path.join(self.project_config['project_directory'], self.project_config['name'] + ".log")
         ui_functions.get_status(self)
+
+    def new_project(self):
+        proj_name = QInputDialog.getText(self, "New project","Project name")[0]
+        proj_dir = QFileDialog.getExistingDirectory(None, 'Select project directory', r"")
+
+        proj_file = os.path.join(proj_dir, proj_name + ".rpj")
+
+        dlg = project_file.NewProjectDialog(proj_name, proj_dir)
+        if dlg.exec():
+            self.project_config = project_file.read_json(proj_file)
+            self.project_config_path = proj_file
+            self.log_path = os.path.join(proj_dir, proj_name + ".log")
+            ui_functions.get_status(self)
+        else:
+            print("Cancel")
+
 
     def get_meta_chunk(self):
         if self.doc is None:
@@ -123,6 +131,9 @@ class Window(QMainWindow, Ui_MainWindow):
 
 
         export_dir = os.path.join(self.project_config["project_directory"], "overlapping_images")
+        if not os.path.exists(export_dir):
+            os.makedirs(export_dir)
+
         temp_chunk = mu.get_overlapping_images(self.chunk, export_dir)
         self.doc.remove([temp_chunk])
         self.after_operation()
@@ -135,7 +146,6 @@ class Window(QMainWindow, Ui_MainWindow):
         print("Launch inference")
 
     def launch_reprojection(self):
-
         db_dir = os.path.join(self.project_config["project_directory"], f"reprojection_{self.project_config['name']}")
         if not os.path.exists(db_dir):
             os.makedirs(db_dir)

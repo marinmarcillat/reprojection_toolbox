@@ -1,4 +1,6 @@
-import reprojection.reprojection as reprojection
+import reprojection.reprojection_main as reprojection
+import reprojection.point_filtering_process as pfp
+from concurrent.futures import ProcessPoolExecutor
 import Metashape
 import pandas as pd
 import reprojection.geometry as geometry
@@ -121,7 +123,16 @@ def inference_report_to_reprojection_database(db_dir, inference_report, cameras_
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
 
-    print("adding")
+    bad_ann_dir = os.path.join(db_dir, "badann")
+    if not os.path.exists(bad_ann_dir):
+        os.makedirs(bad_ann_dir)
+
+    nb_bad_polygon = 0
+    nb_no_tie_points = 0
+    nb_annotations = 0
+
+    print("Processing each photo for annotations")
+    job_list = []
     for photo in tqdm(inference_report.filename.unique()):
         reproj_camera = reprojection.get_camera(photo[:-4], cameras_reprojectors)
         if reproj_camera is None:
@@ -133,26 +144,53 @@ def inference_report_to_reprojection_database(db_dir, inference_report, cameras_
         db_camera = cu.camera_reprojector_to_db(session, reproj_camera)
 
         annotations = inference_report[inference_report.filename == photo]
+
         for id, annotation in annotations.iterrows():
-            a = rdb.Annotation(label = annotation.label_name, camera_name=db_camera.name)
-            if "confidence" in list(annotations.columns):
-                a.confidence = annotation.confidence
-            session.add(a)
-            session.commit()
-            poly3d_file = os.path.join(temp_dir, f"{a.id}_annotation_p3d.npy")
-            tie_point_file = os.path.join(temp_dir, f"{a.id}_tp3d.npy")
-            if not (os.path.exists(poly3d_file) and os.path.exists(tie_point_file)):
-                polygon, polygon_3d = reprojection.get_polygon_and_3d_poly(annotation.points, reproj_camera)
-                if polygon_3d is not None and polygon is not None:  # Check if polygon is not none
-                    filtered_tie_points = geometry.filter_tie_points(polygon_3d, reproj_camera, tie_points)
-                    poly3d_file = save_3d_polygon(polygon_3d, temp_dir, a.id)
-                    tie_point_file = save_tie_points(filtered_tie_points, temp_dir, a.id)
+            nb_annotations += 1
+            polygon_3d = reprojection.get_polygon_and_3d_poly(annotation.points, reproj_camera)
+            if polygon_3d is not None:  # Check if polygon is not none
+                polygon_3d_file = save_3d_polygon(polygon_3d, temp_dir, id)
+                if "confidence" in list(annotations.columns):
+                    confidence = annotation.confidence
                 else:
-                    session.delete(a) # Remove annotation if no valid polygon
-                    continue
-            a.polygon_3D_file = poly3d_file
-            a.tie_point_file = tie_point_file
+                    confidence = 1
+                job_list.append({"id": id,
+                                 "polygon_3D_file": polygon_3d_file,
+                                 "camera_center": np.array(reproj_camera.camera.center),
+                                 "label": annotation.label_name,
+                                 "camera_name": db_camera.name,
+                                 "confidence": confidence
+                })
+            else:
+                nb_bad_polygon += 1
+                print(f"BP {nb_bad_polygon}")
+                continue
+
+    points_data = tie_points
+    with ProcessPoolExecutor(8, initializer=pfp.init_worker, initargs=(points_data, temp_dir, )) as exe:
+         results = exe.map(pfp.filter_points_task, job_list)
+    results = list(results)
+
+    for job in job_list:
+        for ann_id, points_file in results:
+            if job["id"] == ann_id:
+                if points_file is not None:
+                    a = rdb.Annotation(label=job["label"], camera_name=job["camera_name"])
+                    a.confidence = job["confidence"]
+                    a.polygon_3D_file = job["polygon_3D_file"]
+                    a.tie_point_file = points_file
+                    session.add(a)
+                    session.commit()
+                else:
+                    nb_no_tie_points += 1
+                break
     session.commit()
+
+    print(f"Processed {nb_annotations} annotations")
+    print(f"Removed {nb_bad_polygon} annotations with bad polygons")
+    print(f"Removed {nb_no_tie_points} annotations with no tie points")
+    print(f"Missing {(nb_bad_polygon + nb_no_tie_points)/nb_annotations} % annotations")
+
     return session
 
 def annotations_to_individuals(session, db_dir):

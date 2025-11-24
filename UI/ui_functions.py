@@ -51,7 +51,8 @@ def reset_status_ui(qt):
 
     qt.progressBar.setValue(0)
 
-def get_status(qt):
+def get_status(qt, chunk_index=0):
+    chunk_index = int(qt.metaChunk.currentIndex())
 
     if qt.project_config is None:
         print("No project loaded")
@@ -78,7 +79,7 @@ def get_status(qt):
     else:
         qt.metaProject.setText(qt.project_config["metashape_project_path"])
 
-        meta_status = get_meta_status(qt)
+        meta_status = get_meta_status(qt, chunk_index)
         print(f'Metashape status: {meta_status}')
 
     if qt.project_config.get("read_only", False) :
@@ -89,12 +90,14 @@ def get_status(qt):
         qt.inferenceModelPath.setText(qt.project_config["inference_model_path"])
 
     overlapping_images_dir = os.path.join(qt.project_config["project_directory"], "overlapping_images")
-    if not os.path.exists(overlapping_images_dir):
-        os.makedirs(overlapping_images_dir)
-
-    if len(os.listdir(overlapping_images_dir)) != 0:
-        qt.overlappingImageDir.setText(overlapping_images_dir)
-        qt.project_config["overlapping_images"] = True
+    if os.path.exists(overlapping_images_dir):
+        if len(os.listdir(overlapping_images_dir)) != 0:
+            qt.overlappingImageDir.setText(overlapping_images_dir)
+            qt.project_config["overlapping_images"] = True
+        else:
+            qt.project_config["overlapping_images"] = False
+    else:
+        qt.project_config["overlapping_images"] = False
 
     db_path = os.path.join(qt.project_config["project_directory"], f"reprojection_{qt.project_config['name']}", "reprojection.db")
     if os.path.exists(db_path):
@@ -106,7 +109,7 @@ def get_status(qt):
 
     if (
         qt.project_config.get("aligned", False)
-        and len(os.listdir(overlapping_images_dir)) == 0
+        and not qt.project_config["overlapping_images"]
     ):
         qt.overlapping.setEnabled(True)
 
