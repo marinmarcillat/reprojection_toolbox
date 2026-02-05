@@ -4,8 +4,8 @@ import pandas as pd
 from tqdm import tqdm
 from ast import literal_eval
 
-project_path = r"F:\these\Explorer_NOC\Explorer_Bare.psx"
-annotation_report_path = r"F:\these\Explorer_NOC\reprojection\663_csv_image_annotation_report\663-explorer-canyon.csv"
+project_path = r"F:\01-Reconstructions\mtshp_projects\combined\main.psx"
+annotation_report_path = r"D:\03-Change_detection\colonies\annotations_reports\676-coral-cg-chereef25.csv"
 
 doc = Metashape.Document()
 doc.open(project_path)

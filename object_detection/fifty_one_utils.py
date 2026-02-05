@@ -1,6 +1,6 @@
 import fiftyone as fo
 import fiftyone.utils.random as four
-from datetime import datetime
+from datetime import datetime, timedelta
 from PIL import Image
 import os
 import pandas as pd
@@ -8,6 +8,8 @@ from ast import literal_eval
 from tqdm import tqdm
 from fiftyone import ViewField as F
 import cv2
+from decord import VideoReader
+from decord import cpu
 from shutil import copy2
 import object_detection.biigle_utils as biigle_utils
 
@@ -150,8 +152,11 @@ def import_image_csv_report(report_file, image_dir):
                 samples.append(sample)
     return samples
 
-def import_video_csv_report(report_file, video_dir, export_dir, w = 1920, h = 1080, frame_rate = 25):
+
+def import_video_csv_report(report_file, video_dir, export_dir, w = 1920, h = 1080, nav_data = None):
     report = pd.read_csv(report_file)
+    report  = report[report.shape_name != "WholeFrame"]
+
     report['points'] = report.points.apply(lambda x: literal_eval(str(x))[0])
     report['frames'] = report.frames.apply(lambda x: literal_eval(str(x))[0])
 
@@ -159,17 +164,26 @@ def import_video_csv_report(report_file, video_dir, export_dir, w = 1920, h = 10
     samples = []
     for filepath in tqdm(os.listdir(video_dir)):
         if filepath.endswith(".mp4"):
+            dt_str = filepath.split("_")[2]
+            video_start_dt = datetime.strptime(dt_str, "%y%m%d%H%M%S")
+
             video_path = os.path.join(video_dir, filepath)
+
+            vr  = VideoReader(video_path, ctx=cpu(0))
+            fps_in = vr.get_avg_fps()
+            #cap = cv2.VideoCapture(video_path)
+            #fps_in = cap.get(cv2.CAP_PROP_FPS)
 
             annotations = report[report.video_filename == filepath]
             frames = list(set(annotations['frames'].to_list()))
-            frames_dict = {x: int(round(x * frame_rate)) for x in frames}
-
-            cap = cv2.VideoCapture(video_path)
+            frames_dict = {x: int(round(x * fps_in)) for x in frames}
 
             for frame_s, frame_nb in frames_dict.items():
-                cap.set(cv2.CAP_PROP_POS_FRAMES, frame_nb-1)
-                ret, frame = cap.read()
+                if frame_nb > len(vr)-1:
+                    print(f"Frame {frame_nb} not found in video {filepath}")
+                    continue
+                frame = vr[frame_nb].asnumpy()
+
                 img_path = os.path.join(export_dir, f"{filepath}_{frame_nb}.jpg")
                 cv2.imwrite(img_path, frame)
                 metadata = fo.ImageMetadata.build_for(img_path)
@@ -181,6 +195,15 @@ def import_video_csv_report(report_file, video_dir, export_dir, w = 1920, h = 10
 
                 # Store object detections
                 sample["detections"] = fo.Detections(detections=detections)
+
+                if nav_data is not None:
+                    frame_dt = video_start_dt + timedelta(seconds = frame_s)
+                    n = nav_data.iloc[nav_data.index.get_indexer([frame_dt], method='nearest')]
+
+                    if n.index[0] - frame_dt < timedelta(seconds=1):
+                        sample["location"] = fo.GeoLocation(
+                            point = [float(n.longitude.iloc[0]), float(n.latitude.iloc[0])]
+                        )
 
                 samples.append(sample)
     return samples

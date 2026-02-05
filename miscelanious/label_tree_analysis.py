@@ -5,13 +5,13 @@ import json
 
 api = Api()
 lt_id = 60
-export_file = r"D:/00_Local_scale/common/label_tree/label_tree.csv"
+export_file = r"D:/00_Local_scale/common/label_tree/label_tree_Lampaul_all.csv"
 
-volume_id_list = [334, 462]
+volume_id_list = [334,462]
 
 annotations_labels_dict = {}
 for vid in volume_id_list:
-    annotations = api.get(f'volumes/334/statistics').json()['annotationLabels']
+    annotations = api.get(f'volumes/{vid}/statistics').json()['annotationLabels']
     for al in annotations:
         if al['id'] in annotations_labels_dict:
             annotations_labels_dict[al['id']] += al["count"]

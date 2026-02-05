@@ -1,33 +1,92 @@
-import fiftyone as fo
-from fiftyone import ViewField as F
-from Biigle.biigle import Api
-import object_detection.fifty_one_utils as fou
-from object_detection.biigle_utils import ImageVolume
+import pandas as pd
+from ast import literal_eval
+from datetime import datetime, timedelta
+import os
+from tqdm import tqdm
+from decord import VideoReader
+from decord import cpu
+import geopandas as gpd
+import numpy as np
 
-video_volume_id = 115
-lt_id = 60
-project_id = 38
-videos_dir = r"Z:\videos\CHEREEF_2022\Lophelia_cliff"
-export_dir = r"D:\tests\video"
-biigle_dir = r"Z:\images\chereef_2022\cliff_Marcos"
-image_volume_id = 462
+dives = [
+    {"name": "PL200-03",
+     "video_dir": r"Z:\videos\CHEREEF_2021\CHE21_PL200-03",
+     "report_file": r"D:\99_Tests\video\81-pl200-03.csv",
+     "nav_file": r"I:\00_SIG\CHEREEF-2021\Plongees\Nav_Reference\ChEReef2021_HROV_pl200_NAV_pt.shp",
+     },
+    {"name": "PL201-04",
+    "video_dir": r"Z:\videos\CHEREEF_2021\CHE21_PL201-04",
+    "report_file": r"D:\99_Tests\video\88-pl201-04.csv",
+    "nav_file": r"I:\00_SIG\CHEREEF-2021\Plongees\Nav_Reference\nav_reference201.shp",
+     },
+    {"name": "PL202-05",
+    "video_dir": r"Z:\videos\CHEREEF_2021\CHE21_PL202-05",
+     "report_file": r"D:\99_Tests\video\93-pl202-05.csv",
+     "nav_file": r"I:\00_SIG\CHEREEF-2021\Plongees\Nav_Reference\nav_reference202.shp",
+     },
+    {"name": "PL203-06",
+     "video_dir": r"Z:\videos\CHEREEF_2021\CHE21_PL203-06",
+     "report_file": r"D:\99_Tests\video\94-pl203-06.csv",
+     "nav_file": r"I:\00_SIG\CHEREEF-2021\Plongees\Nav_Reference\nav_reference203.shp",}
 
-api = Api()
 
-fou.delete_all_datasets()
-dataset = fo.Dataset(name="biigle_video_annotations")
+]
 
-samples = fou.import_video_volume_api(api, video_volume_id, videos_dir, biigle_dir)
-dataset.add_samples(samples)
+export_dir = r"D:\99_Tests\video"
 
-label_tree = api.get(f'label-trees/{lt_id}').json()["labels"]
-label_tree = {l["name"]: l["id"] for l in label_tree}
-image_volume = ImageVolume(image_volume_id, api)
+for dive in dives:
+    name = dive["name"]
+    video_dir = dive["video_dir"]
+    report_file = dive["report_file"]
+    nav_file = dive["nav_file"]
 
-fou.export_to_biigle(dataset, biigle_dir, image_volume, label_tree)
+    print("Processing dive ", name)
 
-image_volume.request_sam()
+    nav = gpd.read_file(nav_file)
+    nav = nav[['date','time', 'longitude', 'latitude', 'immersion']]
+    if nav.dtypes['date'] == np.dtype('<M8[ms]'):
+        nav["date"] = nav['date'].dt.strftime('%d/%m/%Y')
+    nav['datetime'] = pd.to_datetime(nav['date'] + ' ' + nav['time'], format='%d/%m/%Y %H:%M:%S.%f')
+    nav = nav.drop(columns=['date', 'time'])
+    nav = nav.set_index('datetime')
 
-session = fo.launch_app(dataset)
-session.show()
-session.wait()
+    report = pd.read_csv(report_file)
+    report  = report[report.shape_name != "WholeFrame"]
+
+    report['frames'] = report.frames.apply(lambda x: literal_eval(str(x))[0])
+
+    report = report[['label_name', 'label_hierarchy','video_filename', 'frames', "annotation_id"]]
+    report = report.assign(latitude=0.0)
+    report = report.assign(longitude=0.0)
+
+    # Create video sample with frame labels
+    for filepath in tqdm(os.listdir(video_dir)):
+        if filepath.endswith(".mp4"):
+            dt_str = filepath.split("_")[2]
+            video_start_dt = datetime.strptime(dt_str, "%y%m%d%H%M%S")
+
+            video_path = os.path.join(video_dir, filepath)
+
+            vr  = VideoReader(video_path, ctx=cpu(0))
+            fps_in = vr.get_avg_fps()
+
+            annotations = report[report.video_filename == filepath]
+            frames = list(set(annotations['frames'].to_list()))
+            frames_dict = {x: int(round(x * fps_in)) for x in frames}
+
+            for frame_s, frame_nb in frames_dict.items():
+
+                frame_dt = video_start_dt + timedelta(seconds = frame_s)
+                n = nav.iloc[nav.index.get_indexer([frame_dt], method='nearest')]
+
+                if n.index[0] - frame_dt < timedelta(seconds=1):
+                    report.loc[(report['frames'] == frame_s) & (report['video_filename'] == filepath), 'latitude'] = float(n.latitude.iloc[0])
+                    report.loc[(report['frames'] == frame_s) & (report['video_filename'] == filepath), 'longitude'] = float(n.longitude.iloc[0])
+                else:
+                    print(f"Warning: no nav match for {name} frame {frame_s} at {frame_dt}")
+
+    report.to_csv(os.path.join(export_dir, f"{name}_report.csv"), index=False)
+
+
+
+

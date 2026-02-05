@@ -69,6 +69,22 @@ def split_rotate_annotations(annotations_pcd, cut_plane_normal, cut_plane_center
     return res
 
 
+if __name__ == "__main__":
+    print("starting")
+    pcd_file = r"D:\98_work\ful_vw_model\model.ply"
+    plane_export_dir = r"D:\98_work\ful_vw_model"
+    annotations_pcd = pv.read(pcd_file, progress_bar=True)
 
+    cut_plane_normal = [-0.527798, 0.847633, -0.0542893]
+    cut_plane_center = [1045.463257, 205.031754, -809.335571]
+
+    pcd = pv.read(pcd_file, progress_bar=True)
+    pc_left, pc_right = cut_with_plane(pcd, cut_plane_normal, cut_plane_center)
+
+    for pc, name in zip([pc_left, pc_right], ["left", "right"]):
+        center, normal = get_plane_equation(pc)
+        rotated = rotate_pcd(pc, center, normal)
+        filename = os.path.join(plane_export_dir, f"{name}_part.ply")
+        rotated.save(filename)
 
 
