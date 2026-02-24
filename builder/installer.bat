@@ -94,7 +94,7 @@ echo Creating %RUN_BAT%...
 echo @echo off
 echo set ROOT_DIR=%LOCALAPPDATA%\Reprojection_toolbox
 echo cd /d "%%ROOT_DIR%%"
-echo "%%ROOT_DIR%%\python\python.exe" -m app.py
+echo "%%ROOT_DIR%%\python\python.exe" -m app
 ) > "%RUN_BAT%"
 
 echo.
@@ -103,5 +103,5 @@ echo You can now launch the app using RT.bat in %ROOT_DIR%
 @echo off
 set ROOT_DIR=%LOCALAPPDATA%\Reprojection_toolbox
 cd /d "%ROOT_DIR%"
-"%ROOT_DIR%\python\python.exe" -m app.py
+"%ROOT_DIR%\python\python.exe" -m app
 

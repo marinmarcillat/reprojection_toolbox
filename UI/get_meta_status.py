@@ -23,10 +23,8 @@ def get_meta_status(qt, chunk_name):
 
     chunk_id = get_chunk_id(doc, chunk_name)
 
-    qt.metaChunk.setCurrentIndex(chunk_id)
-
     chunk = doc.chunks[chunk_id]
-    qt.metaChunk.setCurrentText(chunk.label)
+    qt.metaChunk.setText(chunk.label)
     if chunk.tie_points is None:
         return "not_aligned"
 

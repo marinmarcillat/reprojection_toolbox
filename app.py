@@ -1,3 +1,4 @@
+import torch  # To avoid a weird bug with qt
 import os.path
 import sys
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFileDialog, QDialog, QInputDialog)
@@ -61,6 +62,9 @@ class Window(QMainWindow, Ui_MainWindow):
     def open_project(self):
         options = QFileDialog.Options()
         file_path = QFileDialog.getOpenFileName(self, "Open project file", "", "*.rpj", options=options)
+        if not file_path[0]:
+            print("No file selected")
+            return None
         self.project_config = project_file.read_json(file_path[0])
         self.project_config_path = file_path[0]
         self.log_path = os.path.join(self.project_config['project_directory'], self.project_config['name'] + ".log")
