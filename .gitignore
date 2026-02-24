@@ -1,3 +1,5 @@
 /.env
 /.idea/
 /object_detection/yolo11n.pt
+*.zip
+*.exe

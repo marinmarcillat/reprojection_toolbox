@@ -4,11 +4,10 @@ setlocal EnableExtensions EnableDelayedExpansion
 echo === Installing Reprojection toolbox===
 
 REM --- Config ---
-set PY_VERSION=3.12.12
+set PY_VERSION=3.12.10
 set PY_MAJOR=312
 set PY_URL=https://www.python.org/ftp/python/%PY_VERSION%/python-%PY_VERSION%-embed-amd64.zip
 set GET_PIP_URL=https://bootstrap.pypa.io/get-pip.py
-set REPO_URL=https://gitlab.ifremer.fr/image/eyes.git
 
 set ROOT_DIR=%LOCALAPPDATA%\Reprojection_toolbox
 set PYTHON_DIR=%ROOT_DIR%\python
@@ -73,11 +72,11 @@ REM --- Install pip ---
 "%PYTHON_EXE%" "%GET_PIP_FILE%"
 
 REM --- Upgrade pip ---
-"%PYTHON_EXE%" -m pip install --upgrade pip
+"%PYTHON_EXE%" -m pip install --upgrade pip setuptools wheel
 
 REM --- Install dependencies ---
-"%PYTHON_EXE%" -m pip install -r "%ROOT_DIR%\RT\requirements.txt" ^
- --extra-index-url https://download.pytorch.org/whl/cu118
+"%PYTHON_EXE%" -m pip install -r "%ROOT_DIR%\requirements.txt" ^
+ --extra-index-url https://download.pytorch.org/whl/cu128
 
 REM --- Install metashape ---
 "%PYTHON_EXE%" -m pip install "%METASHAPE_PATH%"
@@ -88,21 +87,21 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM --- Create run_eyes.bat ---
-set RUN_BAT=%ROOT_DIR%\Eyes.bat
+REM --- Create RT.bat ---
+set RUN_BAT=%ROOT_DIR%\RT.bat
 echo Creating %RUN_BAT%...
 (
 echo @echo off
 echo set ROOT_DIR=%LOCALAPPDATA%\Reprojection_toolbox
 echo cd /d "%%ROOT_DIR%%"
-echo "%%ROOT_DIR%%\python\python.exe" -m Reprojection_toolbox\app.py
+echo "%%ROOT_DIR%%\python\python.exe" -m app.py
 ) > "%RUN_BAT%"
 
 echo.
-echo === E.Y.E.S installation complete ===
-echo You can now launch the app using Eyes.bat
+echo === Reprojection toolbox installation complete ===
+echo You can now launch the app using RT.bat in %ROOT_DIR%
 @echo off
 set ROOT_DIR=%LOCALAPPDATA%\Reprojection_toolbox
 cd /d "%ROOT_DIR%"
-"%ROOT_DIR%\python\python.exe" -m Reprojection_toolbox\app.py
+"%ROOT_DIR%\python\python.exe" -m app.py
 

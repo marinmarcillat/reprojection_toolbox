@@ -14,12 +14,13 @@ scipy
 seaborn
 colorcet
 ultralytics
+torch
+torchvision
 treelib
 decord
 sqlalchemy
 dataclasses
 sahi
-yaml
 pyyaml
 scikit-learn
 exrex

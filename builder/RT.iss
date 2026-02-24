@@ -26,4 +26,4 @@ Name: "{userprograms}\Reprojection_toolbox"
 
 [Icons]
 Name: "{userprograms}\Reprojection_toolbox\Reprojection_toolbox"; Filename: "{localappdata}\Reprojection_toolbox\RT.bat"; IconFilename: "{app}\Logo-Ifremer.ico"
-Name: "{commondesktop}\Reprojection_toolbox"; Filename: "{localappdata}\Reprojection_toolbox\RT.bat"; Tasks: desktopicon; IconFilename: "{app}\Logo-Ifremer.ico"
+Name: "{userdesktop}\Reprojection_toolbox"; Filename: "{localappdata}\Reprojection_toolbox\RT.bat"; Tasks: desktopicon; IconFilename: "{app}\Logo-Ifremer.ico"

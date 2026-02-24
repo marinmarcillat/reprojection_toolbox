@@ -51,8 +51,8 @@ def reset_status_ui(qt):
 
     qt.progressBar.setValue(0)
 
-def get_status(qt, chunk_index=0):
-    chunk_index = int(qt.metaChunk.currentIndex())
+def get_status(qt):
+    chunk_name = qt.project_config["chunk_name"]
 
     if qt.project_config is None:
         print("No project loaded")
@@ -79,7 +79,7 @@ def get_status(qt, chunk_index=0):
     else:
         qt.metaProject.setText(qt.project_config["metashape_project_path"])
 
-        meta_status = get_meta_status(qt, chunk_index)
+        meta_status = get_meta_status(qt, chunk_name)
         print(f'Metashape status: {meta_status}')
 
     if qt.project_config.get("read_only", False) :

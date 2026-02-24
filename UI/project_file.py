@@ -8,7 +8,7 @@ project_template = {
     'video_directory': '',
     'image_directory': "",
     "metashape_project_path": "",
-    "reprojection_image_directory": "",
+    "chunk_name": "",
     'inference_model_path': '',
     'annotation_report_path': ''
 }
@@ -86,7 +86,8 @@ class NewProjectDialog(QDialog, Ui_Dialog):
 
         project_config['image_directory'] = self.img_dir.text()
         project_config['metashape_project_path'] = self.mtshp_prj.text()
-        project_config["reprojection_image_directory"] = self.img_inf_dir.text()
         project_config['inference_model_path'] = self.inf_model.text()
         project_config['annotation_report_path'] = self.report_path.text()
+        project_config['chunk_name'] = self.chunk_name.text()
+
         write_json(self.proj_file, project_config)

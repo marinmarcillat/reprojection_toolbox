@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>840</width>
-    <height>167</height>
+    <height>172</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -89,6 +89,16 @@
         <string>...</string>
        </property>
       </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Chunk name:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="chunk_name"/>
      </item>
     </layout>
    </item>

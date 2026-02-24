@@ -9,6 +9,7 @@ import pandas as pd
 import UI.project_file as project_file
 from UI.main_window import Ui_MainWindow
 import UI.ui_functions as ui_functions
+from UI.get_meta_status import get_chunk_id
 import contextlib
 from reconstruction import reconstruct
 from reprojection import metashape_utils as mu
@@ -90,12 +91,12 @@ class Window(QMainWindow, Ui_MainWindow):
                 print("Error opening project")
                 return None
 
-        try:
-            chunk_id = int(self.metaChunk.currentIndex())
-        except ValueError:
-            chunk_id = 0
+        chunk_name = self.project_config['chunk_name']
+        chunk_id = get_chunk_id(self.doc, chunk_name)
 
         self.chunk = self.doc.chunks[chunk_id]
+        self.metaChunk.setText(self.chunk.label)
+
         return 1
 
 
@@ -151,16 +152,18 @@ class Window(QMainWindow, Ui_MainWindow):
             os.makedirs(db_dir)
 
         if self.get_meta_chunk() is None :
+            print("Error loading project, abort reprojection")
             return None
 
         if not self.img_labels_cb.isChecked() and  not self.project_config.get("annotation_report_path", False):
             print("No annotation report available. Abort")
+            return None
 
         reprojection_thread = reprojection_launcher.ReprojectionThread(self, self.chunk, db_dir)
         reprojection_thread.prog_val.connect(self.set_prog)
         reprojection_thread.finished.connect(self.after_reprojection)
         reprojection_thread.start()
-        print("launch reconstruction")
+        print("Launch reconstruction")
 
 
 
