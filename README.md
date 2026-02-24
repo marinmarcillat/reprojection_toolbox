@@ -1,56 +1,45 @@
 # Reprojection toolbox
 
-Reprojection toolbox for Metashape
+Reprojection toolbox for Metashape.
+This is an experimental software, all the features are not fully implemented yet and may not work as expected.
+Please report any bugs or issues you encounter while using the toolbox.
+
+## Tools description
+
+Mandatory parameters:
+- name: name of the project
+- project_directory: path to the project directory where all the outputs will be saved
+
+### Reconstruction
+The reconstruction tool allows you to reconstruct a 3D model from a set of images in Metashape.
+
+Requires the following parameters:
+- image_directory: path to the directory containing the images to be used for reconstruction
+
+### Non overlapping image selection
+The non overlapping image selection tool allows you to select a subset of images that do not overlap with each other. 
+This can be useful for reducing the number of images to be annotated and the number of duplicated annotations
+
+Requires reprojection beforhand, or the following parameters:
+- metashape_project_path: path to the Metashape project file (.psx)
+
+### Inference
+The inference tool allows you to run inference on the selected images using a pre-trained model.
+Requires the following parameters:
+- inference_model_path: path to the pre-trained model to be used for inference
+
+### Reprojection
+The reprojection tool allows you to reproject the annotations from the selected images onto the 3D model, and filter the duplicates.
+Requires the following parameters:
+- metashape_project_path: path to the Metashape project file (.psx)
+- annotation_path
 
 ## Installation
 
-Run the following command in Miniforge:
-
-```bash
-    mamba create -y -n reprojection_env -c conda-forge -c pytorch -c nvidia python=3.11 pyvista ultralytics pytorch torchvision torchaudio pytorch-cuda=11.8 tqdm pandas geopandas sqlalchemy scipy jupyterlab fiftyone sahi ipyfilechooser shapely pillow wandb treelib pyqt python-dotenv exrex "ray-tune" 
-    conda activate reprojection_env
-    pip install bayesian-optimization==1.4.3, ifdo
-```
-
-Then install the latest version of Metashape python library from the [Agisoft website](https://www.agisoft.com/downloads/installer/).
-(Or at ifremer, in the folder "Lep2\Imagerie\Metashape\Metashape-2.1.3-cp37.cp38.cp39.cp310.cp311-none-win_amd64.whl")
-
-```bash
-    pip install Metashape-2.1.3-cp37.cp38.cp39.cp310.cp311-none-win_amd64.whl
-```
-## Launch
-
-```bash
-    conda activate reprojection_env
-    cd path/to/reprojection_toolbox
-    python UI/app.py
-```
+Download the latest release from the releases page.
+Run the RT_setup.exe file to install the toolbox. 
+This will install the necessary dependencies and set up the environment for the toolbox to run.
 
 ## Usage
 
-Config file: create a .rpj text file containing the following:
-
-```txt
-{
-    'name': '',
-    'project_directory': '',
-    'video_directory': '',
-    'image_directory': '',
-    'metashape_project_path': '',
-    'inference_model_path': '',
-    'annotation_report_path': '',
-    'reprojection_image_directory': '',
-}
-```
-
-An example of a config file is provided in the example folder.
-
-
-## Advanced development
-
-Update the UI qt file:
-
-```bash
-    cd path/to/reprojection_toolbox/UI
-    pyuic5 -x main.ui -o main_window.py
-```
+Create a new .rpj config file using the file -> new and fill in the required fields.
