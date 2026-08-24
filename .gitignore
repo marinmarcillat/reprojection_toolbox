@@ -3,3 +3,5 @@
 /object_detection/yolo11n.pt
 *.zip
 *.exe
+/release_to_gitlab.txt
+/.venv/

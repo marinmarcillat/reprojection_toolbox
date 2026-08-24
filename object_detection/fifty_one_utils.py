@@ -118,7 +118,7 @@ def append_detections(annotations,  w, h):
         bounding_box = biigle_ann_to_fiftyone(row["points"], w, h)
 
         detections.append(
-            fo.Detection(label=row["label_name"], bounding_box=bounding_box)
+            fo.Detection(label=row["label_name"], bounding_box=bounding_box, confidence = 1.0)
         )
     return detections
 

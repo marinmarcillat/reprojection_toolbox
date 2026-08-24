@@ -197,14 +197,14 @@ class BiigleDatasetImporter(foud.LabeledImageDatasetImporter, foud.ImportPathsMi
     """Custom importer for labeled image datasets.
 
     Args:
-        dataset_dir (None): the dataset directory. This may be optional for
-            some importers
-        shuffle (False): whether to randomly shuffle the order in which the
-            samples are imported
-        seed (None): a random seed to use when shuffling
-        max_samples (None): a maximum number of samples to import. By default,
-            all samples are imported
-        **kwargs: additional keyword arguments for your importer
+        api: Biigle API object
+        label_tree_id: Biigle label tree id to label annotations with
+        volume_id: Biigle volume id to import images and annotations from
+        volume_img_dir: directory where the volume images are stored
+        shuffle: whether to shuffle the samples before iterating over them
+        seed: an optional random seed to use when shuffling the samples
+        max_samples: an optional maximum number of samples to import
+        **kwargs: optional keyword arguments for custom dataset importers
     """
 
     def __init__(
@@ -212,7 +212,7 @@ class BiigleDatasetImporter(foud.LabeledImageDatasetImporter, foud.ImportPathsMi
             api,
             label_tree_id,
             volume_id,
-            volume_dir,
+            volume_img_dir,
             shuffle=False,
             seed=None,
             max_samples=None,
@@ -228,7 +228,7 @@ class BiigleDatasetImporter(foud.LabeledImageDatasetImporter, foud.ImportPathsMi
         self.api = api
         self.label_tree_id = label_tree_id
         self.volume_id = volume_id
-        self.volume_dir = volume_dir
+        self.volume_dir = volume_img_dir
 
         self._info = None
         self._classes = None

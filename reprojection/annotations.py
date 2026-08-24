@@ -167,8 +167,8 @@ def inference_report_to_reprojection_database(db_dir, inference_report, cameras_
                 continue
 
     points_data = tie_points
-    with ProcessPoolExecutor(8, initializer=pfp.init_worker, initargs=(points_data, temp_dir, )) as exe:
-         results = exe.map(pfp.filter_points_task, job_list)
+    with ProcessPoolExecutor(initializer=pfp.init_worker, initargs=(points_data, temp_dir, )) as exe:
+         results = exe.map(pfp.filter_points_task, job_list, chunksize=8)
     results = list(results)
 
     for job in job_list:

@@ -18,8 +18,6 @@ def filter_points_task(args):
     camera_center = args["camera_center"]
     polygon_3d  = np.load(args["polygon_3D_file"], allow_pickle=True)
 
-    print(f"Start filtering annotation {ann_id}")
-
     reprojection_plane_normal, reprojection_plane_center = fit_plane(polygon_3d)
     flatten_polygon = project_points_to_plane(polygon_3d, reprojection_plane_center, reprojection_plane_normal)
     #base_vert = [len(flatten_polygon)] + list(range(len(flatten_polygon)))
@@ -51,16 +49,12 @@ def filter_points_task(args):
 
     #, check_surface=False
     try:
-        selected_1 = points_data.select_enclosed_points(extruded_cam_cylinder, tolerance=0.01)
-        pts_1 = points_data.extract_points(
-            selected_1['SelectedPoints'].view(bool),
-            adjacent_cells=False,
-        )
-        selected_2 = points_data.select_enclosed_points(extruded_safety_cylinder, tolerance=0.01)
-        pts_2 = points_data.extract_points(
-            selected_2['SelectedPoints'].view(bool),
-            adjacent_cells=False,
-        )
+        selected_1 = points_data.select_interior_points(extruded_cam_cylinder, method="cell_locator", locator_tolerance=0.0001)
+        pts_1 = selected_1.threshold(0.5)
+
+        selected_2 = points_data.select_interior_points(extruded_safety_cylinder, method="cell_locator", locator_tolerance=0.0001)
+        pts_2 = selected_2.threshold(0.5)
+
     except RuntimeError:
         print("TP filtering failed")
         return ann_id, None
@@ -68,4 +62,10 @@ def filter_points_task(args):
     filtered_points = np.array(pv.merge([pts_1, pts_2]).points)
     filepath = os.path.join(temp_dir, f"{ann_id}_tp3d.npy")
     np.save(filepath, filtered_points)
+
+    if filtered_points.shape[0] == 0:
+        print(f"Annotation {ann_id} has no points")
+
+    print(f"{ann_id} done !")
+
     return ann_id, filepath
