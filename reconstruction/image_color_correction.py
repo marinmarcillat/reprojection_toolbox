@@ -2,6 +2,8 @@ import sys
 import numpy as np
 import cv2
 import math
+import schedule
+import time
 
 THRESHOLD_RATIO = 2000
 MIN_AVG_RED = 60
@@ -275,10 +277,24 @@ def process_video(video_data, yield_preview=False):
 if __name__ == "__main__":
     import os
     from tqdm import tqdm
-    img_dir = r"F:\these\Chereef_metashape\2022\Vertical Wall\images\raw\img_700\processed_images"
-    out_dir = r"F:\these\Chereef_metashape\2022\Vertical Wall\images\raw\img_700\processed_images"
+    img_dirs = [
+        r"E:\01-Reconstructions\data\2025\Coral_Garden\images\raw\acq_20250821T200523\processed_images",
+        r"E:\01-Reconstructions\data\2025\Coral_Garden\images\raw\acq_20250821T210945\processed_images",
+        r"E:\01-Reconstructions\data\2025\Coral_Garden\images\raw\acq_20250822T171106\processed_images",
+        r"E:\01-Reconstructions\data\2025\Coral_Garden\images\raw\acq_20250823T234902\processed_images",
+        r"E:\01-Reconstructions\data\2025\Coral_Garden\images\raw\acq_20250824T040323\processed_images"
+    ]
+    out_dir = r"E:\01-Reconstructions\data\2025\Coral_Garden\images\illumination_cor"
 
+    def color_correct_job():
+        for img_dir in img_dirs:
+            for img in tqdm(os.listdir(img_dir)):
+                if img.endswith(".jpg"):
+                    correct_image(os.path.join(img_dir, img), os.path.join(out_dir, img))
+        return schedule.CancelJob
 
-    for img in tqdm(os.listdir(img_dir)):
-        if img.endswith(".jpg"):
-            correct_image(os.path.join(img_dir, img), os.path.join(out_dir, img))
+    schedule.every().day.at('20:00').do(color_correct_job)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)

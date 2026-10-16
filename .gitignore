@@ -5,3 +5,4 @@
 *.exe
 /release_to_gitlab.txt
 /.venv/
+/.env.bu
