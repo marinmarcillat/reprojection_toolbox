@@ -20,9 +20,8 @@ def image_preprocessing_job(img_dir, out_dir):
         icc.correct_image(img, img)
 
 if __name__ == "__main__":
-    img_dir_list = [r"F:\01-Reconstructions\data\2022\Coral Garden\images\raw\pl811",
-                    r"F:\01-Reconstructions\data\2022\Coral Garden\images\raw\pl814"]
-    out_dir = r"F:\01-Reconstructions\data\2022\Coral Garden\images\color_illum_corrected"
+    img_dir_list = [r"F:\01-Reconstructions\data\2023\Coral Garden\images\raw\temp"]
+    out_dir = r"F:\01-Reconstructions\data\2023\Coral Garden\images\raw\temp\output"
 
     for img_dir in img_dir_list:
         image_preprocessing_job(img_dir, out_dir)

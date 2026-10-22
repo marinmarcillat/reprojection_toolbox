@@ -278,11 +278,9 @@ if __name__ == "__main__":
     import os
     from tqdm import tqdm
     img_dirs = [
-        r"F:\01-Reconstructions\data\2023\Coral Garden\images\raw\pl850\processed_images",
-        r"F:\01-Reconstructions\data\2023\Coral Garden\images\raw\pl851\processed_images",
-        r"F:\01-Reconstructions\data\2023\Coral Garden\images\raw\pl854\processed_images"
+        r"F:\01-Reconstructions\data\2022\Coral Garden\images\raw\temp\processed_images"
     ]
-    out_dir = r"F:\01-Reconstructions\data\2023\Coral Garden\images\illum_color_correction"
+    out_dir = r"F:\01-Reconstructions\data\2022\Coral Garden\images\color_illum_corrected"
 
     for img_dir in img_dirs:
         for img in tqdm(os.listdir(img_dir)):
